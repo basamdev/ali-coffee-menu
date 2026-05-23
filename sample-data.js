@@ -95,7 +95,7 @@ const sampleItems = [
         description_en: "Carbonated soft drink",
         price: 1500,
         image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400",
-        category: "Cold eDrinks",
+        category: "Cold Drinks",
         available: true
     },
     {

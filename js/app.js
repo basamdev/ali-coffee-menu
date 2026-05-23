@@ -28,60 +28,60 @@ document.addEventListener('DOMContentLoaded', function () {
 
 const i18n = {
     ku: {
-        menuTitle: 'مێنووی ئێمه',
+        menuTitle: 'مێنووی ئێمە',
         loadingMenu: 'داگرتنی مێنوو...',
-        noItems: 'هیچ تاقەلەیەک نییە لە مێنووەکەدا.',
-        noCategoryItems: 'هیچ تاقەلەیەک نییە لەم بەشەدا.',
-        errorLoadingMenu: 'هەڵە لە داگرتنی مێنووەکەدا.',
+        noItems: 'هیچ شتێک نییە لە مێنوودا.',
+        noCategoryItems: 'هیچ شتێک نییە لەم بەشەدا.',
+        errorLoadingMenu: 'هەڵە لە داگرتنی مێنوودا.',
         noCategories: 'هیچ بەشێک نییە.',
-        pageTitle: 'عەلي کافێ | مێنوو',
+        pageTitle: 'عەلی کافێ | مێنوو',
         dashboard: 'داشبۆرد',
-        manageItems: 'بەڕیوەبەت تاقەلە',
-        manageCategories: 'بەڕیوەبەت بەشە',
-        reports: 'راپۆرت',
-        cashier: 'کاشیر',
-        settings: 'سەتتینگ',
+        manageItems: 'بەڕێوەبردنی ئایتمەکان',
+        manageCategories: 'بەڕێوەبردنی بەشەکان',
+        reports: 'ڕاپۆرتەکان',
+        cashier: 'کاشێر',
+        settings: 'ڕێکخستنەکان',
         logout: 'دەرچوون',
-        admin: 'ئەدمین',
+        admin: 'بەڕێوەبەر',
         ku: 'کوردی',
         ar: 'عەرەبی',
-        en: 'English',
-        coffee: 'قەڵەو',
+        en: 'ئینگلیزی',
+        coffee: 'قاوە',
         tea: 'چای',
-        dessert: 'دەزست',
-        coldDrinks: 'خەلکە سرد',
-        water: 'ئاش',
-        specialDrinks: 'خەلکە تایبەت',
-        viewDetails: 'بینین',
+        dessert: 'شیرینی',
+        coldDrinks: 'خواردنەوەی سارد',
+        water: 'ئاو',
+        specialDrinks: 'خواردنەوەی تایبەت',
+        viewDetails: 'بینینی زیاتر',
         todaySales: 'فرۆشتنی ئەمڕۆ',
         monthlySales: 'فرۆشتنی ئەم مانگە',
-        totalOrders: 'کۆی فارمێکان',
-        bestSelling: 'باشترین فرۆشتن',
-        recentSales: 'فرۆشتنی نوێ',
+        totalOrders: 'کۆی هەموو داواکارییەکان',
+        bestSelling: 'باشترین فرۆشراو',
+        recentSales: 'نوێترین فرۆشتنەکان',
         time: 'کات',
         items: 'ئایتم',
         total: 'کۆی گشتی',
-        noSalesYet: 'هیچ فرۆشتنێک نییە',
-        noSalesData: 'هیچ داتایەکی فرۆشتن نییە',
+        noSalesYet: 'هیچ فرۆشتنێک نییە تا ئێستا',
+        noSalesData: 'هیچ داتایەکی فرۆشتن بەردەست نییە',
         addNewItem: '+ زیادکردنی ئایتمی نوێ',
         searchItems: 'گەڕان بۆ ئایتم...',
         allCategories: 'هەموو بەشەکان',
         select: 'هەڵبژێرە',
-        kurdishName: 'ناوی کوردی',
-        arabicName: 'ناوی عەرەبی',
-        englishName: 'ناوی ئینگلیزی',
-        kurdishDesc: 'وەسفی کوردی',
-        arabicDesc: 'وەسفی عەرەبی',
-        englishDesc: 'وەسفی ئینگلیزی',
-        imageURL: 'لینکی وێنە',
+        kurdishName: 'ناو بە کوردی',
+        arabicName: 'ناو بە عەرەبی',
+        englishName: 'ناو بە ئینگلیزی',
+        kurdishDesc: 'وەسف بە کوردی',
+        arabicDesc: 'وەسف بە عەرەبی',
+        englishDesc: 'وەسف بە ئینگلیزی',
+        imageURL: 'بەستەری وێنە',
         price: 'نرخ (IQD)',
         category: 'بەش',
         available: 'بەردەستە',
         saveItem: 'پاشەکەوتکردن',
-        cancel: 'هەڵوەشاندن',
+        cancel: 'پاشگەزبوونەوە',
         edit: 'دەستکاری',
         delete: 'سڕینەوە',
-        deleteConfirm: 'دڵنیایت لە سڕینەوەی ئەم ایتمە؟',
+        deleteConfirm: 'دڵنیایت لە سڕینەوەی ئەم ئایتمە؟',
         fillAll: 'تکایە هەموو خانەکان پڕ بکەرەوە',
         itemSaved: 'ئایتم پاشەکەوت کرا!',
         itemError: 'هەڵە: ',
@@ -89,10 +89,10 @@ const i18n = {
         noItemsFound: 'هیچ ئایتمێک نەدۆزرایەوە',
         weeklySales: 'فرۆشتنی ئەم هەفتەیە',
         totalSales: 'کۆی گشتی فرۆشتن',
-        currentOrder: 'فارمێکی ئێستا',
-        clear: 'پاککردنەوە',
+        currentOrder: 'داواکاریی ئێستا',
+        clear: 'خاوێنکردنەوە',
         payNow: '💳 پارەدان',
-        addFirst: 'تکایە ئایتم زیاد بکە',
+        addFirst: 'تکایە سەرەتا ئایتم زیاد بکە',
         paymentSuccess: 'پارەدان سەرکەوتوو بوو! کۆی گشتی: ',
         noItemsAdded: 'هیچ ئایتمێک زیاد نەکراوە.\nکلیک لەسەر ئایتم بکە بۆ زیادکردن.',
         cafeName: 'ناوی کافێ',
@@ -285,40 +285,46 @@ async function loadMenuItems() {
     container.innerHTML = `<div class="loading-menu">${strings.loadingMenu}</div>`;
 
     try {
-        if (!window.db) throw new Error('Firebase database not initialized');
+         if (!window.db) throw new Error('Firebase database not initialized');
 
-        const snapshot = await window.db.collection('menuItems').get();
-        const items = [];
-        snapshot.forEach(doc => {
-            items.push({ id: doc.id, ...doc.data() });
-        });
+         const snapshot = await window.db.collection('menuItems').get();
+         const items = [];
+         snapshot.forEach(doc => {
+             items.push({ id: doc.id, ...doc.data() });
+         });
 
-        cachedMenuItems = items;
-        console.log('Loaded items:', items.length);
+         cachedMenuItems = items;
+         console.log('Loaded items:', items.length);
 
-         if (items.length === 0) {
-             container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">☕</div><p>${strings.noItems}</p></div>`;
-             return;
-         }
+          if (items.length === 0) {
+              container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">☕</div><p>${strings.noItems}</p></div>`;
+          }
 
           renderCategories(items);
 
-         // Realtime listener
-        if (loadMenuItems._unsubscribe) loadMenuItems._unsubscribe();
-        loadMenuItems._unsubscribe = window.db.collection('menuItems').onSnapshot(
-            liveSnap => {
-                const liveItems = [];
-                liveSnap.forEach(doc => liveItems.push({ id: doc.id, ...doc.data() }));
-                   cachedMenuItems = liveItems;
-                   renderCategories(liveItems);
-            },
-            err => console.warn('[realtime] error:', err.message)
-        );
+          // Realtime listener
+         if (loadMenuItems._unsubscribe) loadMenuItems._unsubscribe();
+         loadMenuItems._unsubscribe = window.db.collection('menuItems').onSnapshot(
+             liveSnap => {
+                 const liveItems = [];
+                 liveSnap.forEach(doc => liveItems.push({ id: doc.id, ...doc.data() }));
+                    cachedMenuItems = liveItems;
+                    renderCategories(liveItems);
+                    if (liveItems.length > 0 && _activeCategory) {
+                        renderMenuItems(liveItems.filter(i => i.category === _activeCategory));
+                    } else if (liveItems.length > 0) {
+                        const grid = document.getElementById('menuGrid');
+                        if (grid) grid.innerHTML = '';
+                    }
+             },
+             err => console.warn('[realtime] error:', err.message)
+         );
 
-    } catch (error) {
-        console.error('Error loading menu:', error);
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>${strings.errorLoadingMenu}</p><p style="font-size:0.8rem;margin-top:8px">${error.message}</p></div>`;
-    } finally {
+     } catch (error) {
+         console.error('Error loading menu:', error);
+         container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>${strings.errorLoadingMenu}</p><p style="font-size:0.8rem;margin-top:8px">${error.message}</p></div>`;
+         renderCategories([]);
+     } finally {
         loadMenuItems._inProgress = false;
     }
 }
@@ -328,34 +334,44 @@ window.addEventListener('unload', function () {
 });
 
 function renderCategories(items) {
-    const scroll = document.getElementById('categoryScroll');
-    if (!scroll) return;
+     const scroll = document.getElementById('categoryScroll');
+     if (!scroll) return;
 
-    const lang = localStorage.getItem('selectedLang') || 'ku';
-    const strings = i18n[lang] || i18n.en;
+     const lang = localStorage.getItem('selectedLang') || 'ku';
+     const strings = i18n[lang] || i18n.en;
 
-    const categoryOrder = ['Coffee', 'Tea', 'Cold Drinks', 'Dessert', 'Water', 'Special Drinks'];
-    const foundCategories = new Set(items.map(i => i.category).filter(Boolean));
-    const ordered = categoryOrder.filter(c => foundCategories.has(c));
-    foundCategories.forEach(c => { if (!ordered.includes(c)) ordered.push(c); });
+     const categoryOrder = ['Coffee', 'Tea', 'Cold Drinks', 'Dessert', 'Water', 'Special Drinks'];
+     const foundCategories = items.length > 0 ? new Set(items.map(i => i.category).filter(Boolean)) : new Set(categoryOrder);
+     const ordered = categoryOrder.filter(c => foundCategories.has(c));
+     foundCategories.forEach(c => { if (!ordered.includes(c)) ordered.push(c); });
 
-    let html = '';
-    ordered.forEach(cat => {
-        var key = cat.replace(/\s+/g, '');
-        key = key.charAt(0).toLowerCase() + key.slice(1);
-        var label = strings[key] || cat;
-        html += `<button class="category-btn" data-category="${cat}"><span>${label}</span></button>`;
-    });
+    const categoryIcons = {
+        'Coffee': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/924/924514.png" alt="Coffee">',
+        'Tea': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/1223/1223749.png" alt="Tea">',
+        'Cold Drinks': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/1113/1113278.png" alt="Cold Drinks">',
+        'Dessert': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/8346/8346809.png" alt="Dessert">',
+        'Water': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/1113/1113278.png" alt="Water">',
+        'Special Drinks': '<img class="cat-icon" src="https://cdn-icons-png.flaticon.com/128/5473/5473500.png" alt="Special Drinks">',
+    };
 
-    scroll.innerHTML = html;
+     let html = '';
+     ordered.forEach(cat => {
+         var key = cat.replace(/\s+/g, '');
+         key = key.charAt(0).toLowerCase() + key.slice(1);
+         var label = strings[key] || cat;
+         var icon = categoryIcons[cat] || '<svg class="cat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg>';
+         html += `<button class="category-btn" data-category="${cat}">${icon}<span class="cat-label">${label}</span></button>`;
+     });
 
-    scroll.querySelectorAll('.category-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const cat = btn.getAttribute('data-category');
-            switchCategory(cat);
-        });
-    });
-}
+     scroll.innerHTML = html;
+
+     scroll.querySelectorAll('.category-btn').forEach(btn => {
+         btn.addEventListener('click', () => {
+             const cat = btn.getAttribute('data-category');
+             switchCategory(cat);
+         });
+     });
+ }
 
 function switchCategory(category) {
     _activeCategory = category;
@@ -637,8 +653,7 @@ function setupThemeToggle() {
     const themeToggle = document.getElementById('themeToggle');
     const adminThemeToggle = document.getElementById('adminThemeToggle');
 
-    const savedTheme = localStorage.getItem('theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const savedTheme = localStorage.getItem('theme') || 'dark';
 
     if (savedTheme === 'light') {
         document.body.classList.add('light-mode');

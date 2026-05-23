@@ -567,13 +567,15 @@ function loadCashierItems() {
         var ordered = catOrder.filter(function (c) { return grouped[c]; });
         Object.keys(grouped).forEach(function (c) { if (ordered.indexOf(c) === -1) ordered.push(c); });
 
-        var catHtml = '<button class="cashier-cat-btn active" data-cat="all">All</button>';
-        ordered.forEach(function (c) { catHtml += '<button class="cashier-cat-btn" data-cat="' + c + '">' + c + '</button>'; });
+        var S2 = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
+        var catMap2 = {Coffee: S2.coffee, Tea: S2.tea, 'Cold Drinks': S2.coldDrinks, Dessert: S2.dessert, Water: S2.water, 'Special Drinks': S2.specialDrinks};
+        var catHtml = '<button class="cashier-cat-btn active" data-cat="all">' + S2.allCategories + '</button>';
+        ordered.forEach(function (c) { catHtml += '<button class="cashier-cat-btn" data-cat="' + c + '">' + (catMap2[c] || c) + '</button>'; });
         catBar.innerHTML = catHtml;
 
         function renderGrid(filterCat) {
             var filtered = filterCat === 'all' ? items : items.filter(function (it) { return it.v.category === filterCat; });
-            if (filtered.length === 0) { grid.innerHTML = '<div class="cashier-empty">No items in this category</div>'; return; }
+            if (filtered.length === 0) { grid.innerHTML = '<div class="cashier-empty">' + S2.noCategoryItems + '</div>'; return; }
             var html = '';
             filtered.forEach(function (it) {
                 var name = it.v['name_' + lang] || it.v.name_en || 'Item';

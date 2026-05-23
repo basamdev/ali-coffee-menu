@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ali Cafe - Admin Panel</title>
+    <link rel="icon" type="image/png" href="images/ali-cafe-logo-circular.png">
+    <link rel="apple-touch-icon" href="images/ali-cafe-logo-circular.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -63,5 +65,21 @@
     <script src="js/firebase.js"></script>
     <script src="js/app.js"></script>
     <script src="js/admin.js"></script>
+    <script>
+        function fallbackLogo(img) {
+            img.onerror = null;
+            img.style.display = 'none';
+            if (!img.dataset.fallback) {
+                img.dataset.fallback = 'true';
+                var wrap = img.closest('.sidebar-brand') || img.parentElement;
+                if (wrap) {
+                    var span = document.createElement('span');
+                    span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#C8A02A);color:#000;font-weight:800;font-size:1.1rem;font-family:var(--font-body);flex-shrink:0;border:2px solid rgba(212,175,55,0.3);box-shadow:0 2px 12px rgba(212,175,55,0.2);';
+                    span.textContent = 'AC';
+                    wrap.insertBefore(span, wrap.firstChild);
+                }
+            }
+        }
+    </script>
 </body>
 </html>

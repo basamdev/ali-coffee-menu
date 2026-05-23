@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ali Cafe | Menu</title>
+    <link rel="icon" type="image/png" href="images/ali-cafe-logo-circular.png">
+    <link rel="apple-touch-icon" href="images/ali-cafe-logo-circular.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGwcBEjwaCcVggOwTt8bMR8t/vQE8zt8VM+g6EZ2r7O9OI6SjFh5VjaALaJfTS5Rjz+id4Q==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="has-video-bg">
@@ -95,8 +98,26 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
     <script src="js/firebase.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        function fallbackLogo(img) {
+            img.onerror = null;
+            img.style.display = 'none';
+            if (!img.dataset.fallback) {
+                img.dataset.fallback = 'true';
+                var wrap = img.closest('.logo') || img.parentElement;
+                if (wrap) {
+                    var span = document.createElement('span');
+                    var h = img.getAttribute('height') || '40';
+                    span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#C8A02A);color:#000;font-weight:800;font-size:1rem;font-family:var(--font-body);flex-shrink:0;border:2px solid rgba(212,175,55,0.25);box-shadow:0 2px 10px rgba(212,175,55,0.15);';
+                    span.style.width = h + 'px';
+                    span.style.height = h + 'px';
+                    span.textContent = 'AC';
+                    wrap.insertBefore(span, wrap.firstChild);
+                }
+            }
+        }
+    </script>
 </body>
 </html>
