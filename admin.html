@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali Cafe - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container admin-layout">
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <img src="images/ali-cafe-logo-circular.png" alt="Ali Cafe" class="sidebar-brand-icon" onclick="window.location.href='menu.html'" onerror="fallbackLogo(this)">
+                    <span class="sidebar-brand-text">Ali Cafe</span>
+                </div>
+            </div>
+            <div class="sidebar-nav">
+                <button class="nav-item admin-nav-btn active" data-section="dashboard">
+                    <span class="nav-item-icon">📊</span><span data-i18n="dashboard">Dashboard</span>
+                </button>
+                <button class="nav-item admin-nav-btn" data-section="items">
+                    <span class="nav-item-icon">🍽️</span><span data-i18n="manageItems">Items</span>
+                </button>
+                <button class="nav-item admin-nav-btn" data-section="categories">
+                    <span class="nav-item-icon">📁</span><span data-i18n="manageCategories">Categories</span>
+                </button>
+                <button class="nav-item admin-nav-btn" data-section="reports">
+                    <span class="nav-item-icon">📈</span><span data-i18n="reports">Reports</span>
+                </button>
+                <button class="nav-item admin-nav-btn" data-section="cashier">
+                    <span class="nav-item-icon">🛒</span><span data-i18n="cashier">Cashier</span>
+                </button>
+                <button class="nav-item admin-nav-btn" data-section="settings">
+                    <span class="nav-item-icon">⚙️</span><span data-i18n="settings">Settings</span>
+                </button>
+                <button class="nav-item admin-nav-btn nav-item--logout" data-section="logout">
+                    <span class="nav-item-icon">🚪</span><span data-i18n="logout">Logout</span>
+                </button>
+            </div>
+        </div>
+        <div class="admin-main">
+            <div class="admin-header">
+                <h1 class="admin-title">Dashboard</h1>
+                <div class="admin-header-actions">
+                    <div class="admin-lang-switcher">
+                        <button class="admin-lang-btn" data-lang="ku">KU</button>
+                        <button class="admin-lang-btn" data-lang="ar">AR</button>
+                        <button class="admin-lang-btn active" data-lang="en">EN</button>
+                    </div>
+                    <button class="admin-theme-toggle" id="adminThemeToggle">🌙</button>
+                </div>
+            </div>
+            <div id="adminContent"></div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

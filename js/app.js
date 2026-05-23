@@ -1,0 +1,671 @@
+// App.js — Ali Cafe Premium Menu
+// Handles: i18n, theme, category filtering, product detail modal, video player
+
+window.openMenu = function (lang) {
+    localStorage.setItem('selectedLang', lang);
+    window.location.href = 'menu.html?lang=' + lang;
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        const savedLang = localStorage.getItem('selectedLang') || 'ku';
+        setActiveLanguage(savedLang);
+        applyLanguageUI(savedLang);
+        setupThemeToggle();
+
+        if (window.location.pathname.includes('menu.html')) {
+            loadMenuItems();
+            setupLanguageButtons();
+        }
+    } catch (e) {
+        console.error('Init error:', e);
+    }
+});
+
+/* ========================================
+   i18n
+   ======================================== */
+
+const i18n = {
+    ku: {
+        menuTitle: 'مێنووی ئێمه',
+        loadingMenu: 'داگرتنی مێنوو...',
+        noItems: 'هیچ تاقەلەیەک نییە لە مێنووەکەدا.',
+        noCategoryItems: 'هیچ تاقەلەیەک نییە لەم بەشەدا.',
+        errorLoadingMenu: 'هەڵە لە داگرتنی مێنووەکەدا.',
+        noCategories: 'هیچ بەشێک نییە.',
+        pageTitle: 'عەلي کافێ | مێنوو',
+        dashboard: 'داشبۆرد',
+        manageItems: 'بەڕیوەبەت تاقەلە',
+        manageCategories: 'بەڕیوەبەت بەشە',
+        reports: 'راپۆرت',
+        cashier: 'کاشیر',
+        settings: 'سەتتینگ',
+        logout: 'دەرچوون',
+        admin: 'ئەدمین',
+        ku: 'کوردی',
+        ar: 'عەرەبی',
+        en: 'English',
+        coffee: 'قەڵەو',
+        tea: 'چای',
+        dessert: 'دەزست',
+        coldDrinks: 'خەلکە سرد',
+        water: 'ئاش',
+        specialDrinks: 'خەلکە تایبەت',
+        viewDetails: 'بینین',
+        todaySales: 'فرۆشتنی ئەمڕۆ',
+        monthlySales: 'فرۆشتنی ئەم مانگە',
+        totalOrders: 'کۆی فارمێکان',
+        bestSelling: 'باشترین فرۆشتن',
+        recentSales: 'فرۆشتنی نوێ',
+        time: 'کات',
+        items: 'ئایتم',
+        total: 'کۆی گشتی',
+        noSalesYet: 'هیچ فرۆشتنێک نییە',
+        noSalesData: 'هیچ داتایەکی فرۆشتن نییە',
+        addNewItem: '+ زیادکردنی ئایتمی نوێ',
+        searchItems: 'گەڕان بۆ ئایتم...',
+        allCategories: 'هەموو بەشەکان',
+        select: 'هەڵبژێرە',
+        kurdishName: 'ناوی کوردی',
+        arabicName: 'ناوی عەرەبی',
+        englishName: 'ناوی ئینگلیزی',
+        kurdishDesc: 'وەسفی کوردی',
+        arabicDesc: 'وەسفی عەرەبی',
+        englishDesc: 'وەسفی ئینگلیزی',
+        imageURL: 'لینکی وێنە',
+        price: 'نرخ (IQD)',
+        category: 'بەش',
+        available: 'بەردەستە',
+        saveItem: 'پاشەکەوتکردن',
+        cancel: 'هەڵوەشاندن',
+        edit: 'دەستکاری',
+        delete: 'سڕینەوە',
+        deleteConfirm: 'دڵنیایت لە سڕینەوەی ئەم ایتمە؟',
+        fillAll: 'تکایە هەموو خانەکان پڕ بکەرەوە',
+        itemSaved: 'ئایتم پاشەکەوت کرا!',
+        itemError: 'هەڵە: ',
+        categoriesList: 'بەشەکانی سیستەم:',
+        noItemsFound: 'هیچ ئایتمێک نەدۆزرایەوە',
+        weeklySales: 'فرۆشتنی ئەم هەفتەیە',
+        totalSales: 'کۆی گشتی فرۆشتن',
+        currentOrder: 'فارمێکی ئێستا',
+        clear: 'پاککردنەوە',
+        payNow: '💳 پارەدان',
+        addFirst: 'تکایە ئایتم زیاد بکە',
+        paymentSuccess: 'پارەدان سەرکەوتوو بوو! کۆی گشتی: ',
+        noItemsAdded: 'هیچ ئایتمێک زیاد نەکراوە.\nکلیک لەسەر ئایتم بکە بۆ زیادکردن.',
+        cafeName: 'ناوی کافێ',
+        currency: 'دراو',
+        saveSettings: 'پاشەکەوتکردن',
+        settingsSaved: 'ڕێکخستنەکان پاشەکەوت کران!',
+        yes: 'بەڵێ',
+        no: 'نەخێر',
+        sectionNotFound: 'بەش نەدۆزرایەوە',
+        errorLoading: 'هەڵە لە بارکردن: ',
+    },
+    ar: {
+        menuTitle: 'قائمتنا',
+        loadingMenu: 'جارٍ تحميل القائمة...',
+        noItems: 'لا توجد عناصر في القائمة.',
+        noCategoryItems: 'لا توجد عناصر في هذا القسم.',
+        errorLoadingMenu: 'حدث خطأ أثناء تحميل القائمة.',
+        noCategories: 'لا توجد أقسام.',
+        pageTitle: 'علي كافيه | القائمة',
+        dashboard: 'لوحة التحكم',
+        manageItems: 'إدارة العناصر',
+        manageCategories: 'إدارة الفئات',
+        reports: 'التقارير',
+        cashier: 'الصندوق',
+        settings: 'الإعدادات',
+        logout: 'تسجيل الخروج',
+        admin: 'المشرف',
+        ku: 'كوردي',
+        ar: 'عربي',
+        en: 'English',
+        coffee: 'قهوة',
+        tea: 'شاي',
+        dessert: 'حلوى',
+        coldDrinks: 'مشروبات باردة',
+        water: 'ماء',
+        specialDrinks: 'مشروبات خاصة',
+        viewDetails: 'عرض التفاصيل',
+        todaySales: 'مبيعات اليوم',
+        monthlySales: 'مبيعات الشهر',
+        totalOrders: 'إجمالي الطلبات',
+        bestSelling: 'الأكثر مبيعاً',
+        recentSales: 'المبيعات الأخيرة',
+        time: 'الوقت',
+        items: 'عناصر',
+        total: 'الإجمالي',
+        noSalesYet: 'لا توجد مبيعات بعد',
+        noSalesData: 'لا توجد بيانات مبيعات',
+        addNewItem: '+ إضافة عنصر جديد',
+        searchItems: 'البحث عن عناصر...',
+        allCategories: 'جميع الفئات',
+        select: 'اختر',
+        kurdishName: 'الاسم الكردي',
+        arabicName: 'الاسم العربي',
+        englishName: 'الاسم الإنجليزي',
+        kurdishDesc: 'الوصف الكردي',
+        arabicDesc: 'الوصف العربي',
+        englishDesc: 'الوصف الإنجليزي',
+        imageURL: 'رابط الصورة',
+        price: 'السعر (IQD)',
+        category: 'الفئة',
+        available: 'متاح',
+        saveItem: 'حفظ',
+        cancel: 'إلغاء',
+        edit: 'تعديل',
+        delete: 'حذف',
+        deleteConfirm: 'هل أنت متأكد من حذف هذا العنصر؟',
+        fillAll: 'يرجى ملء جميع الحقول المطلوبة',
+        itemSaved: 'تم حفظ العنصر!',
+        itemError: 'خطأ: ',
+        categoriesList: 'فئات النظام:',
+        noItemsFound: 'لم يتم العثور على عناصر',
+        weeklySales: 'مبيعات الأسبوع',
+        totalSales: 'إجمالي المبيعات',
+        currentOrder: 'الطلب الحالي',
+        clear: 'مسح',
+        payNow: '💳 ادفع الآن',
+        addFirst: 'يرجى إضافة عناصر أولاً',
+        paymentSuccess: 'تم الدفع بنجاح! الإجمالي: ',
+        noItemsAdded: 'لم تتم إضافة أي عناصر.\nاضغط على العناصر لإضافتها.',
+        cafeName: 'اسم المقهى',
+        currency: 'العملة',
+        saveSettings: 'حفظ الإعدادات',
+        settingsSaved: 'تم حفظ الإعدادات!',
+        yes: 'نعم',
+        no: 'لا',
+        sectionNotFound: 'القسم غير موجود',
+        errorLoading: 'خطأ في التحميل: ',
+    },
+    en: {
+        menuTitle: 'Our Menu',
+        loadingMenu: 'Loading menu items...',
+        noItems: 'No menu items found.',
+        noCategoryItems: 'No items in this category.',
+        errorLoadingMenu: 'Error loading menu.',
+        noCategories: 'No categories.',
+        pageTitle: 'Ali Cafe | Menu',
+        dashboard: 'Dashboard',
+        manageItems: 'Manage Items',
+        manageCategories: 'Manage Categories',
+        reports: 'Reports',
+        cashier: 'Cashier',
+        settings: 'Settings',
+        logout: 'Logout',
+        admin: 'Admin',
+        ku: 'Kurdish',
+        ar: 'Arabic',
+        en: 'English',
+        coffee: 'Coffee',
+        tea: 'Tea',
+        dessert: 'Dessert',
+        coldDrinks: 'Cold Drinks',
+        water: 'Water',
+        specialDrinks: 'Special Drinks',
+        viewDetails: 'View',
+        todaySales: 'Today Sales',
+        monthlySales: 'Monthly Sales',
+        totalOrders: 'Total Orders',
+        bestSelling: 'Best Selling',
+        recentSales: 'Recent Sales',
+        time: 'Time',
+        items: 'Items',
+        total: 'Total',
+        noSalesYet: 'No sales yet',
+        noSalesData: 'No sales data',
+        addNewItem: '+ Add New Item',
+        searchItems: 'Search items...',
+        allCategories: 'All Categories',
+        select: 'Select',
+        kurdishName: 'Kurdish Name',
+        arabicName: 'Arabic Name',
+        englishName: 'English Name',
+        kurdishDesc: 'Kurdish Description',
+        arabicDesc: 'Arabic Description',
+        englishDesc: 'English Description',
+        imageURL: 'Image URL',
+        price: 'Price (IQD)',
+        category: 'Category',
+        available: 'Available',
+        saveItem: 'Save Item',
+        cancel: 'Cancel',
+        edit: 'Edit',
+        delete: 'Delete',
+        deleteConfirm: 'Are you sure you want to delete this item?',
+        fillAll: 'Please fill in all required fields',
+        itemSaved: 'Item saved!',
+        itemError: 'Error: ',
+        categoriesList: 'System categories:',
+        noItemsFound: 'No items found',
+        weeklySales: 'Weekly Sales',
+        totalSales: 'Total Sales',
+        currentOrder: 'Current Order',
+        clear: 'Clear',
+        payNow: '💳 Pay Now',
+        addFirst: 'Please add items first',
+        paymentSuccess: 'Payment successful! Total: ',
+        noItemsAdded: 'No items added yet.\nTap items to add them.',
+        cafeName: 'Cafe Name',
+        currency: 'Currency',
+        saveSettings: 'Save Settings',
+        settingsSaved: 'Settings saved!',
+        yes: 'Yes',
+        no: 'No',
+        sectionNotFound: 'Section not found',
+        errorLoading: 'Error loading: ',
+    }
+};
+
+/* ========================================
+   State
+   ======================================== */
+
+let cachedMenuItems = [];
+let _activeCategory = null;
+let _renderSerial = 0;
+let _currentDetailItem = null;
+
+/* ========================================
+   Menu Loading
+   ======================================== */
+
+async function loadMenuItems() {
+    if (loadMenuItems._inProgress) return;
+    loadMenuItems._inProgress = true;
+
+    const container = document.getElementById('menuGrid');
+    const lang = localStorage.getItem('selectedLang') || 'ku';
+    const strings = i18n[lang] || i18n.en;
+     if (!container) return;
+
+    container.innerHTML = `<div class="loading-menu">${strings.loadingMenu}</div>`;
+
+    try {
+        if (!window.db) throw new Error('Firebase database not initialized');
+
+        const snapshot = await window.db.collection('menuItems').get();
+        const items = [];
+        snapshot.forEach(doc => {
+            items.push({ id: doc.id, ...doc.data() });
+        });
+
+        cachedMenuItems = items;
+        console.log('Loaded items:', items.length);
+
+         if (items.length === 0) {
+             container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">☕</div><p>${strings.noItems}</p></div>`;
+             return;
+         }
+
+          renderCategories(items);
+
+         // Realtime listener
+        if (loadMenuItems._unsubscribe) loadMenuItems._unsubscribe();
+        loadMenuItems._unsubscribe = window.db.collection('menuItems').onSnapshot(
+            liveSnap => {
+                const liveItems = [];
+                liveSnap.forEach(doc => liveItems.push({ id: doc.id, ...doc.data() }));
+                   cachedMenuItems = liveItems;
+                   renderCategories(liveItems);
+            },
+            err => console.warn('[realtime] error:', err.message)
+        );
+
+    } catch (error) {
+        console.error('Error loading menu:', error);
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>${strings.errorLoadingMenu}</p><p style="font-size:0.8rem;margin-top:8px">${error.message}</p></div>`;
+    } finally {
+        loadMenuItems._inProgress = false;
+    }
+}
+
+window.addEventListener('unload', function () {
+    if (loadMenuItems._unsubscribe) loadMenuItems._unsubscribe();
+});
+
+function renderCategories(items) {
+    const scroll = document.getElementById('categoryScroll');
+    if (!scroll) return;
+
+    const lang = localStorage.getItem('selectedLang') || 'ku';
+    const strings = i18n[lang] || i18n.en;
+
+    const categoryOrder = ['Coffee', 'Tea', 'Cold Drinks', 'Dessert', 'Water', 'Special Drinks'];
+    const foundCategories = new Set(items.map(i => i.category).filter(Boolean));
+    const ordered = categoryOrder.filter(c => foundCategories.has(c));
+    foundCategories.forEach(c => { if (!ordered.includes(c)) ordered.push(c); });
+
+    let html = '';
+    ordered.forEach(cat => {
+        var key = cat.replace(/\s+/g, '');
+        key = key.charAt(0).toLowerCase() + key.slice(1);
+        var label = strings[key] || cat;
+        html += `<button class="category-btn" data-category="${cat}"><span>${label}</span></button>`;
+    });
+
+    scroll.innerHTML = html;
+
+    scroll.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cat = btn.getAttribute('data-category');
+            switchCategory(cat);
+        });
+    });
+}
+
+function switchCategory(category) {
+    _activeCategory = category;
+    document.body.classList.add('category-selected');
+
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+    });
+
+    const grid = document.getElementById('menuGrid');
+    if (!grid) return;
+
+    grid.classList.add('category-switching');
+
+    setTimeout(() => {
+        const items = cachedMenuItems.filter(i => i.category === category);
+        renderMenuItems(items);
+        grid.classList.remove('category-switching');
+    }, 200);
+}
+
+/* ========================================
+   Menu Items Rendering
+   ======================================== */
+
+function renderMenuItems(items) {
+    const container = document.getElementById('menuGrid');
+    if (!container) return;
+
+    _renderSerial++;
+    const serial = _renderSerial;
+    const lang = localStorage.getItem('selectedLang') || 'ku';
+    const strings = i18n[lang] || i18n.en;
+
+    container.innerHTML = '';
+
+    if (!items || items.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">☕</div><p>${strings.noCategoryItems}</p></div>`;
+        return;
+    }
+
+    const availableItems = items.filter(item => item.available !== false);
+
+    availableItems.forEach(item => {
+        const name = item[`name_${lang}`] || item.name_en || item.name_ar || item.name_ku || 'Unnamed Item';
+        const description = item[`description_${lang}`] || item.description_en || item.description_ar || item.description_ku || '';
+        const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27%3E%3Crect fill=%231a1a1a width=%27400%27 height=%27300%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 font-size=%2740%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%23D4AF37%27%3E%E2%98%95%3C/text%3E%3C/svg%3E';
+        const imageUrl = normalizeImageUrl(item.image) || fallbackImage;
+
+        const card = document.createElement('div');
+        card.className = 'menu-card';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.innerHTML = `
+            <div class="menu-card-img-wrapper">
+                <img src="${imageUrl}" alt="${name}" class="menu-card-img" loading="lazy"
+                     onerror="this.onerror=null;this.src='${fallbackImage}';">
+                <div class="menu-card-badge">${item.category || ''}</div>
+            </div>
+            <div class="menu-card-body">
+                <h2 class="menu-card-title">${name}</h2>
+                ${description ? `<p class="menu-card-desc">${description}</p>` : '<p class="menu-card-desc" style="opacity:0">—</p>'}
+                <div class="menu-card-footer">
+                    <div class="price-tag">
+                        ${item.price ? item.price.toLocaleString() : '0'}
+                        <span class="price-currency">IQD</span>
+                    </div>
+                    <span class="card-view-hint">→ ${strings.viewDetails}</span>
+                </div>
+            </div>
+        `;
+
+        // Open detail on click
+        const openDetail = () => openProductDetail(item);
+        card.addEventListener('click', openDetail);
+        card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); } });
+
+        container.appendChild(card);
+    });
+}
+
+/* ========================================
+   Product Detail Modal
+   ======================================== */
+
+function openProductDetail(item) {
+    _currentDetailItem = item;
+    const lang = localStorage.getItem('selectedLang') || 'ku';
+    const name = item[`name_${lang}`] || item.name_en || item.name_ar || item.name_ku || 'Unnamed Item';
+    const description = item[`description_${lang}`] || item.description_en || item.description_ar || item.description_ku || '';
+    const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27%3E%3Crect fill=%231a1a1a width=%27400%27 height=%27300%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 font-size=%2740%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%23D4AF37%27%3E%E2%98%95%3C/text%3E%3C/svg%3E';
+    const imageUrl = normalizeImageUrl(item.image) || fallbackImage;
+
+    // Populate detail panel
+    const imgEl = document.getElementById('detailImage');
+    if (imgEl) imgEl.src = imageUrl;
+
+    const catEl = document.getElementById('detailCategory');
+    if (catEl) catEl.textContent = item.category || '';
+
+    const titleEl = document.getElementById('detailTitle');
+    if (titleEl) titleEl.textContent = name;
+
+    const descEl = document.getElementById('detailDesc');
+    if (descEl) descEl.textContent = description;
+
+    const priceEl = document.getElementById('detailPrice');
+    if (priceEl) priceEl.textContent = item.price ? item.price.toLocaleString() : '0';
+
+    // Video button
+    const videoBtn = document.getElementById('videoPlayBtn');
+    if (videoBtn) {
+        if (item.video) {
+            videoBtn.style.display = 'flex';
+            videoBtn.onclick = () => openVideoModal(item.video);
+        } else {
+            videoBtn.style.display = 'none';
+        }
+    }
+
+    // Show overlay
+    const overlay = document.getElementById('detailOverlay');
+    if (overlay) {
+        overlay.classList.add('open');
+        document.body.classList.add('detail-open');
+    }
+}
+
+function closeProductDetail() {
+    const overlay = document.getElementById('detailOverlay');
+    if (overlay) {
+        overlay.classList.remove('open');
+        document.body.classList.remove('detail-open');
+    }
+    _currentDetailItem = null;
+}
+
+/* ========================================
+   Video Modal
+   ======================================== */
+
+function openVideoModal(videoUrl) {
+    const overlay = document.getElementById('videoOverlay');
+    const videoEl = document.getElementById('detailVideo');
+    if (!overlay || !videoEl) return;
+
+    videoEl.src = videoEl.src = videoUrl;
+    videoEl.play().catch(() => {});
+    overlay.classList.add('open');
+}
+
+function closeVideoModal() {
+    const overlay = document.getElementById('videoOverlay');
+    const videoEl = document.getElementById('detailVideo');
+    if (overlay) overlay.classList.remove('open');
+    if (videoEl) {
+        videoEl.pause();
+        videoEl.src = '';
+    }
+}
+
+/* ========================================
+   Event Wiring (menu page)
+   ======================================== */
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Detail close
+    const detailBackdrop = document.getElementById('detailBackdrop');
+    const detailClose = document.getElementById('detailClose');
+    if (detailBackdrop) detailBackdrop.addEventListener('click', closeProductDetail);
+    if (detailClose) detailClose.addEventListener('click', closeProductDetail);
+
+    // Video close
+    const videoOverlay = document.getElementById('videoOverlay');
+    const videoClose = document.getElementById('videoClose');
+    if (videoOverlay) videoOverlay.addEventListener('click', function (e) { if (e.target === this) closeVideoModal(); });
+    if (videoClose) videoClose.addEventListener('click', closeVideoModal);
+
+    // Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const videoOverlay = document.getElementById('videoOverlay');
+            if (videoOverlay && videoOverlay.classList.contains('open')) {
+                closeVideoModal();
+            } else {
+                closeProductDetail();
+            }
+        }
+    });
+});
+
+/* ========================================
+   Language
+   ======================================== */
+
+function setActiveLanguage(lang) {
+    localStorage.setItem('selectedLang', lang);
+
+    if (window.location.pathname.includes('menu.html')) {
+        const url = new URL(window.location);
+        url.searchParams.set('lang', lang);
+        window.history.pushState({ path: url.href }, '', url.href);
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+    });
+
+    document.documentElement.dir = (lang === 'ar' || lang === 'ku') ? 'rtl' : 'ltr';
+}
+
+function applyLanguageUI(lang) {
+    var strings = i18n[lang] || i18n.en;
+    document.title = strings.pageTitle;
+
+    document.querySelectorAll('[data-i18n]').forEach(function (element) {
+        var key = element.getAttribute('data-i18n');
+        if (strings[key]) element.textContent = strings[key];
+    });
+
+    if (window.location.pathname.includes('admin.html')) {
+        updateAdminPanelText(strings);
+        var activeSection = document.querySelector('.admin-nav-btn.active');
+        if (activeSection) {
+            var section = activeSection.getAttribute('data-section');
+            loadAdminSection(section);
+        }
+    }
+
+    if (cachedMenuItems.length > 0) {
+        renderCategories(cachedMenuItems);
+        if (_activeCategory && _activeCategory !== null) {
+            renderMenuItems(cachedMenuItems.filter(function (i) { return i.category === _activeCategory; }));
+        }
+    }
+
+    if (_currentDetailItem) {
+        openProductDetail(_currentDetailItem);
+    }
+}
+
+function updateAdminPanelText(strings) {
+    var adminHeader = document.querySelector('.admin-header h1');
+    if (adminHeader) adminHeader.textContent = strings.dashboard;
+
+    var navMap = {
+        dashboard: strings.dashboard,
+        items: strings.manageItems,
+        categories: strings.manageCategories,
+        reports: strings.reports,
+        cashier: strings.cashier,
+        settings: strings.settings,
+        logout: strings.logout
+    };
+    document.querySelectorAll('.admin-nav-btn').forEach(function (item) {
+        var section = item.getAttribute('data-section');
+        if (navMap[section]) {
+            var label = item.querySelector('span:last-child');
+            if (label) label.textContent = navMap[section];
+        }
+    });
+}
+
+function setupLanguageButtons() {
+    document.querySelectorAll('.lang-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const lang = button.getAttribute('data-lang');
+            setActiveLanguage(lang);
+            applyLanguageUI(lang);
+        });
+    });
+}
+
+/* ========================================
+   Theme
+   ======================================== */
+
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('themeToggle');
+    const adminThemeToggle = document.getElementById('adminThemeToggle');
+
+    const savedTheme = localStorage.getItem('theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+    } else {
+        document.body.classList.remove('light-mode');
+    }
+
+    const handleToggle = () => {
+        const isLight = document.body.classList.toggle('light-mode');
+        const newTheme = isLight ? 'light' : 'dark';
+        localStorage.setItem('theme', newTheme);
+    };
+
+    if (themeToggle) themeToggle.addEventListener('click', handleToggle);
+    if (adminThemeToggle) adminThemeToggle.addEventListener('click', handleToggle);
+}
+
+/* ========================================
+   Utilities
+   ======================================== */
+
+function normalizeImageUrl(url) {
+    if (!url) return null;
+    try {
+        new URL(url);
+        return url;
+    } catch (e) {
+        return null;
+    }
+}

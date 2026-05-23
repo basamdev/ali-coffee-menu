@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عەلي کافێ | Ali Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="has-video-bg">
+    <!-- Background Video -->
+    <video class="bg-video" autoplay muted loop playsinline>
+        <source src="images/menu-bg.mp4" type="video/mp4">
+    </video>
+    <div class="bg-overlay"></div>
+
+    <main class="hero">
+        <div class="hero-center">
+            <img src="images/ali-cafe-logo-circular.png" class="logo" alt="Ali Cafe Logo" onerror="this.onerror=null; this.src='assets/logo.svg';">
+
+            <h1 class="cafe-name">Ali <span class="gold">Cafe</span></h1>
+
+            <div class="coffee-wrap">
+                <svg class="coffee-cup" viewBox="0 0 64 68" xmlns="http://www.w3.org/2000/svg" aria-label="coffee cup">
+                    <path d="M10 18 h44 v34 c0 8-5.4 14-16 14 s-16-6-16-14 z" fill="#6b3a1a"/>
+                    <ellipse cx="32" cy="18" rx="22" ry="6" fill="#4a2a12"/>
+                    <ellipse cx="32" cy="18" rx="15" ry="4" fill="#8b5e3c"/>
+                    <path d="M54 26 q8 0 8 10 q0 10-8 10" fill="none" stroke="#6b3a1a" stroke-width="4" stroke-linecap="round"/>
+                    <path class="steam steam1" d="M22 10 q2-4 0-8" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+                    <path class="steam steam2" d="M32 8 q2-5 0-10" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+                    <path class="steam steam3" d="M42 10 q2-4 0-8" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <p class="cafe-tagline">Premium Coffee House in Baherka</p>
+
+
+            <div class="lang-group">
+                <button class="lang-btn" data-lang="ku" onclick="openMenu('ku')">کوردی</button>
+                <span class="lang-sep">·</span>
+                <button class="lang-btn" data-lang="ar" onclick="openMenu('ar')">اللعربیة</button>
+                <span class="lang-sep">·</span>
+                <button class="lang-btn" data-lang="en" onclick="openMenu('en')">English</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
