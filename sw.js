@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ali-cafe-v65';
+const CACHE_NAME = 'ali-cafe-v66';
 // Relative paths — the app is served from a subfolder (e.g. /ali-cafe-menu/),
 // so root-absolute paths like '/index.html' would 404 and break install.
 const STATIC_ASSETS = [

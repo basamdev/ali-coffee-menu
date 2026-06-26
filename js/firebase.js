@@ -38,26 +38,38 @@ try {
     console.warn('Firestore settings:', error);
 }
 
+// Export config for REST fallback (mobile hosts where SDK WebChannel hangs).
+window.firebaseConfig = firebaseConfig;
+
+function isMobileBrowser() {
+    return /Android|webOS|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+}
+
 // Let the app know when Firestore is ready (persistence is optional).
+// Skip persistence on mobile — it can block reads on iOS Safari / in-app browsers.
 window.dbReady = Promise.resolve(db);
-try {
-    window.dbReady = db.enablePersistence({ synchronizeTabs: true })
-        .then(function () {
-            console.log('Firestore offline persistence enabled (multi-tab)');
-            return db;
-        })
-        .catch(function (error) {
-            if (error.code === 'failed-precondition') {
-                console.log('Persistence unavailable (another tab owns it) — running online only.');
-            } else if (error.code === 'unimplemented') {
-                console.log('Persistence not supported by browser');
-            } else {
-                console.error('Persistence error:', error);
-            }
-            return db;
-        });
-} catch (error) {
-    console.error('Persistence setup error:', error);
+if (!isMobileBrowser()) {
+    try {
+        window.dbReady = db.enablePersistence({ synchronizeTabs: true })
+            .then(function () {
+                console.log('Firestore offline persistence enabled (multi-tab)');
+                return db;
+            })
+            .catch(function (error) {
+                if (error.code === 'failed-precondition') {
+                    console.log('Persistence unavailable (another tab owns it) — running online only.');
+                } else if (error.code === 'unimplemented') {
+                    console.log('Persistence not supported by browser');
+                } else {
+                    console.error('Persistence error:', error);
+                }
+                return db;
+            });
+    } catch (error) {
+        console.error('Persistence setup error:', error);
+    }
+} else {
+    console.log('Mobile browser — Firestore persistence skipped');
 }
 
 // Firebase Storage is not used in this app; images are stored as public URL strings.

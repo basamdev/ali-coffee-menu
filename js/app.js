@@ -720,6 +720,67 @@ function firestoreGetWithTimeout(ref, ms) {
     ]);
 }
 
+var APP_VERSION = 'v67';
+
+function restFieldValue(field) {
+    if (!field || typeof field !== 'object') return null;
+    if ('stringValue' in field) return field.stringValue;
+    if ('integerValue' in field) return parseInt(field.integerValue, 10);
+    if ('doubleValue' in field) return parseFloat(field.doubleValue);
+    if ('booleanValue' in field) return !!field.booleanValue;
+    if ('nullValue' in field) return null;
+    return null;
+}
+
+function parseMenuItemsFromRest(json) {
+    var items = [];
+    (json.documents || []).forEach(function (doc) {
+        var f = doc.fields || {};
+        var id = doc.name.split('/').pop();
+        var category = restFieldValue(f.category);
+        if (category === 'Water') return;
+        items.push({
+            id: id,
+            name_ku: restFieldValue(f.name_ku),
+            name_ar: restFieldValue(f.name_ar),
+            name_en: restFieldValue(f.name_en),
+            price: restFieldValue(f.price),
+            category: category,
+            image: restFieldValue(f.image),
+            available: restFieldValue(f.available) !== false,
+            description_ku: restFieldValue(f.description_ku),
+            description_ar: restFieldValue(f.description_ar),
+            description_en: restFieldValue(f.description_en)
+        });
+    });
+    return items;
+}
+
+function fetchMenuViaRest(timeoutMs) {
+    timeoutMs = timeoutMs || 10000;
+    var cfg = window.firebaseConfig;
+    if (!cfg || !cfg.projectId || !cfg.apiKey) {
+        return Promise.reject(new Error('Firebase config missing'));
+    }
+    var url = 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(cfg.projectId) +
+        '/databases/(default)/documents/menuItems?key=' + encodeURIComponent(cfg.apiKey);
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = null;
+    var opts = { cache: 'no-store' };
+    if (controller) {
+        timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+        opts.signal = controller.signal;
+    }
+    return fetch(url, opts).then(function (r) {
+        if (timer) clearTimeout(timer);
+        if (!r.ok) throw new Error('REST HTTP ' + r.status);
+        return r.json();
+    }).then(parseMenuItemsFromRest).catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+    });
+}
+
 function menuItemsSignature(items) {
     if (!items || !items.length) return '';
     return items.map(function (i) {
@@ -831,14 +892,30 @@ async function loadMenuItems() {
     if (loadMenuItems._loadTimer) clearTimeout(loadMenuItems._loadTimer);
     loadMenuItems._loadTimer = setTimeout(function () {
         if (!_menuUiReady && container.querySelector('.loading-menu')) {
-            fetchMenuItemsFallback(strings, 'timeout');
+            fetchMenuViaRest(12000).then(function (items) {
+                applyMenuItemsUpdate(items, { force: true });
+            }).catch(function () {
+                fetchMenuItemsFallback(strings, 'timeout');
+            });
         }
     }, 5000);
 
     const hadCache = showCachedMenuIfAvailable();
     if (!hadCache) {
-        container.innerHTML = `<div class="loading-menu">${strings.loadingMenu}</div>`;
+        container.innerHTML = '<div class="loading-menu">' + strings.loadingMenu +
+            '<br><small style="opacity:0.45;font-size:0.75rem;margin-top:6px;display:block">' + APP_VERSION + '</small></div>';
     }
+
+    // REST fetch runs immediately — bypasses Firestore SDK when it hangs on mobile hosts.
+    fetchMenuViaRest(10000).then(function (items) {
+        if (loadMenuItems._loadTimer) {
+            clearTimeout(loadMenuItems._loadTimer);
+            loadMenuItems._loadTimer = null;
+        }
+        applyMenuItemsUpdate(items, { force: true });
+    }).catch(function (err) {
+        console.warn('[menu] REST load failed:', err.message);
+    });
 
     try {
         await waitForFirebaseDb(8000);
@@ -912,16 +989,29 @@ function showMenuLoadError(strings, error) {
 }
 
 function fetchMenuItemsFallback(strings, reason) {
-    if (!window.db || _menuUiReady) return;
-    firestoreGetWithTimeout(window.db.collection('menuItems'), 8000).then(function (snap) {
+    if (_menuUiReady) return;
+    fetchMenuViaRest(10000).then(function (items) {
         if (loadMenuItems._loadTimer) {
             clearTimeout(loadMenuItems._loadTimer);
             loadMenuItems._loadTimer = null;
         }
-        applyMenuItemsUpdate(parseMenuItemsFromSnapshot(snap), { force: true });
-    }).catch(function (err) {
-        console.warn('[menu] fallback get failed (' + reason + '):', err.message);
-        if (!_menuUiReady) showMenuLoadError(strings, err);
+        applyMenuItemsUpdate(items, { force: true });
+    }).catch(function (restErr) {
+        console.warn('[menu] REST fallback failed (' + reason + '):', restErr.message);
+        if (!window.db) {
+            if (!_menuUiReady) showMenuLoadError(strings, restErr);
+            return;
+        }
+        firestoreGetWithTimeout(window.db.collection('menuItems'), 8000).then(function (snap) {
+            if (loadMenuItems._loadTimer) {
+                clearTimeout(loadMenuItems._loadTimer);
+                loadMenuItems._loadTimer = null;
+            }
+            applyMenuItemsUpdate(parseMenuItemsFromSnapshot(snap), { force: true });
+        }).catch(function (err) {
+            console.warn('[menu] SDK fallback get failed (' + reason + '):', err.message);
+            if (!_menuUiReady) showMenuLoadError(strings, err);
+        });
     });
 }
 
