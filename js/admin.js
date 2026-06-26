@@ -256,7 +256,7 @@ function warmAdminOfflineCache(done) {
     });
 }
 
-var ADMIN_VERSION = 'v80';
+var ADMIN_VERSION = 'v81';
 
 function getDashboardMonth() {
     var sel = document.getElementById('dashboardMonthSelect');
@@ -663,23 +663,33 @@ document.addEventListener('DOMContentLoaded', function () {
     setupAdminOfflineDetection();
     hydrateAdminFromLocalCache();
 
-    const LOGO_HINTS = [
-        'assets/ali-cafe-logo-circular.png',
-        'images/ali-cafe-logo-circular.png',
+    var LOGO_CANDIDATES = [
+        'assets/apple-touch-icon.png',
+        'assets/icon-192.png',
+        'assets/icon-512.png',
+        'images/ali-cafe-logo-circular.png'
     ];
-    let logoTry = 0;
     window.fallbackLogo = function (img) {
         if (!img || !(img instanceof HTMLImageElement)) return;
-        img.addEventListener('error', function () {
-            img.style.display = 'none';
-            var fallback = document.createElement('div');
+        if (img.dataset.logoFallbackDone === '1') return;
+        var next = parseInt(img.dataset.logoTry || '1', 10);
+        if (next < LOGO_CANDIDATES.length) {
+            img.dataset.logoTry = String(next + 1);
+            img.src = LOGO_CANDIDATES[next] + '?v=81';
+            return;
+        }
+        img.dataset.logoFallbackDone = '1';
+        img.onerror = null;
+        img.style.display = 'none';
+        var wrap = img.closest('.sidebar-brand') || img.parentElement;
+        if (wrap && !wrap.querySelector('.logo-fallback-initials')) {
+            var fallback = document.createElement('span');
             fallback.className = 'logo-fallback-initials';
             fallback.textContent = 'AC';
-            fallback.style.cssText = 'width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:serif;font-size:1.25rem;font-weight:700;color:#D4AF37;background:#1a1a1a;flex-shrink:0;';
-            if (img.parentNode) img.parentNode.insertBefore(fallback, img);
-        });
+            fallback.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#1D4ED8);color:#fff;font-weight:800;font-size:1.1rem;font-family:var(--font-body);flex-shrink:0;border:2px solid rgba(59,130,246,0.35);box-shadow:0 2px 12px rgba(59,130,246,0.25);';
+            wrap.insertBefore(fallback, wrap.firstChild);
+        }
     };
-    document.querySelectorAll('img.sidebar-brand-icon, img.logo').forEach(window.fallbackLogo);
 
     applyAdminAccent(localStorage.getItem('adminAccent') || 'sapphire');
     initAdminPanel();
