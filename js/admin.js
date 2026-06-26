@@ -251,11 +251,12 @@ function warmAdminOfflineCache(done) {
     }).catch(function () {}));
     Promise.all(tasks).then(function () {
         try { localStorage.setItem('adminCacheWarmedAt', String(Date.now())); } catch (e) {}
+        hydrateAdminFromLocalCache();
         if (typeof done === 'function') done();
     });
 }
 
-var ADMIN_VERSION = 'v76';
+var ADMIN_VERSION = 'v78';
 
 function getDashboardMonth() {
     var sel = document.getElementById('dashboardMonthSelect');
@@ -268,13 +269,24 @@ function getExpensesMonth() {
 }
 
 function getSalesDataSource() {
-    if (_adminSalesLive !== null) return _adminSalesLive;
-    return readCachedSales();
+    var cached = readCachedSales();
+    if (_adminSalesLive === null) return cached;
+    if (_adminSalesLive.length === 0 && cached.length > 0) return cached;
+    return _adminSalesLive;
 }
 
 function getExpensesDataSource() {
-    if (_adminExpensesLive !== null) return _adminExpensesLive;
-    return readCachedExpenses();
+    var cached = readCachedExpenses();
+    if (_adminExpensesLive === null) return cached;
+    if (_adminExpensesLive.length === 0 && cached.length > 0) return cached;
+    return _adminExpensesLive;
+}
+
+function hydrateAdminFromLocalCache() {
+    var sales = readCachedSales();
+    var expenses = readCachedExpenses();
+    if (sales.length > 0) _adminSalesLive = sales;
+    if (expenses.length > 0) _adminExpensesLive = expenses;
 }
 
 function restFieldValue(field) {
@@ -401,62 +413,75 @@ function scheduleAdminRestFallback() {
 }
 
 function startAdminLiveListeners() {
-    if (_adminLiveListenersStarted || !window.db || !isAdminAuthenticated()) return;
+    hydrateAdminFromLocalCache();
+    refreshAdminCurrentSection();
+
+    if (_adminLiveListenersStarted || !window.db) return;
+    if (!isAdminAuthenticated()) {
+        if (!navigator.onLine) _adminLiveListenersStarted = true;
+        return;
+    }
     _adminLiveListenersStarted = true;
 
-    fetchAdminCollectionViaRest('sales').then(function (docs) {
-        _adminSalesLive = restDocsToSales(docs);
-        writeCachedSales(_adminSalesLive);
-        if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
-        if (document.getElementById('recentSalesContainer')) renderRecentSalesUI();
-    }).catch(function (e) { console.warn('[REST] sales:', e.message || e); });
+    if (navigator.onLine) {
+        fetchAdminCollectionViaRest('sales').then(function (docs) {
+            if (!docs.length) return;
+            _adminSalesLive = restDocsToSales(docs);
+            writeCachedSales(_adminSalesLive);
+            if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
+            if (document.getElementById('recentSalesContainer')) renderRecentSalesUI();
+        }).catch(function (e) { console.warn('[REST] sales:', e.message || e); });
 
-    fetchAdminCollectionViaRest('expenses').then(function (docs) {
-        _adminExpensesLive = restDocsToExpenses(docs);
-        writeCachedExpenses(_adminExpensesLive);
-        if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
-        if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
-    }).catch(function (e) { console.warn('[REST] expenses:', e.message || e); });
+        fetchAdminCollectionViaRest('expenses').then(function (docs) {
+            if (!docs.length) return;
+            _adminExpensesLive = restDocsToExpenses(docs);
+            writeCachedExpenses(_adminExpensesLive);
+            if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
+            if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
+        }).catch(function (e) { console.warn('[REST] expenses:', e.message || e); });
+    }
 
-    var salesUnsub = db.collection('sales').onSnapshot(function (snap) {
+    function applySalesSnap(snap) {
+        if (snap.empty) {
+            hydrateAdminFromLocalCache();
+            refreshAdminCurrentSection();
+            return;
+        }
         _adminSalesLive = [];
         snap.forEach(function (d) { _adminSalesLive.push(saleEntryFromDoc(d)); });
         writeCachedSales(_adminSalesLive);
         if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
         if (document.getElementById('recentSalesContainer')) renderRecentSalesUI();
-    }, function (e) {
-        console.error('[live] sales error:', e);
-        fetchAdminCollectionViaRest('sales').then(function (docs) {
-            _adminSalesLive = restDocsToSales(docs);
-            writeCachedSales(_adminSalesLive);
-            refreshAdminCurrentSection();
-        }).catch(function () {
-            _adminSalesLive = readCachedSales();
-            refreshAdminCurrentSection();
-        });
-    });
-    dashboardUnsubscribes.push(salesUnsub);
+    }
 
-    var expUnsub = db.collection('expenses').onSnapshot(function (snap) {
+    function applyExpensesSnap(snap) {
+        if (snap.empty) {
+            hydrateAdminFromLocalCache();
+            refreshAdminCurrentSection();
+            return;
+        }
         _adminExpensesLive = [];
         snap.forEach(function (d) { _adminExpensesLive.push(expenseEntryFromDoc(d)); });
         writeCachedExpenses(_adminExpensesLive);
         if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
         if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
-    }, function (e) {
+    }
+
+    var salesUnsub = db.collection('sales').onSnapshot(applySalesSnap, function (e) {
+        console.error('[live] sales error:', e);
+        hydrateAdminFromLocalCache();
+        refreshAdminCurrentSection();
+    });
+    dashboardUnsubscribes.push(salesUnsub);
+
+    var expUnsub = db.collection('expenses').onSnapshot(applyExpensesSnap, function (e) {
         console.error('[live] expenses error:', e);
-        fetchAdminCollectionViaRest('expenses').then(function (docs) {
-            _adminExpensesLive = restDocsToExpenses(docs);
-            writeCachedExpenses(_adminExpensesLive);
-            refreshAdminCurrentSection();
-        }).catch(function () {
-            _adminExpensesLive = readCachedExpenses();
-            refreshAdminCurrentSection();
-        });
+        hydrateAdminFromLocalCache();
+        refreshAdminCurrentSection();
     });
     dashboardUnsubscribes.push(expUnsub);
 
-    scheduleAdminRestFallback();
+    if (navigator.onLine) scheduleAdminRestFallback();
 }
 
 function isAdminAuthenticated() {
@@ -477,6 +502,9 @@ window.adminAuthReady = new Promise(function (resolve) {
         if (user) {
             warmAdminOfflineCache();
             startAdminLiveListeners();
+            refreshAdminCurrentSection();
+        } else if (!navigator.onLine) {
+            hydrateAdminFromLocalCache();
             refreshAdminCurrentSection();
         } else if (navigator.onLine) {
             window.location.href = 'login.html';
@@ -586,6 +614,7 @@ window.populateTestData = populateTestData;
 
 document.addEventListener('DOMContentLoaded', function () {
     setupAdminOfflineDetection();
+    hydrateAdminFromLocalCache();
 
     const LOGO_HINTS = [
         'assets/ali-cafe-logo-circular.png',
@@ -1179,6 +1208,10 @@ function startItemsListener() {
     }
 
     function applyItemsSnap(snap) {
+        if (snap.empty) {
+            hydrateItemsUiFromCache();
+            return;
+        }
         _itemsSnapDocs = collectItemDocsFromSnap(snap);
         refreshCategoryFilterOptions();
         refreshItemCategoryDropdown();
@@ -2872,6 +2905,8 @@ function setupAdminOfflineDetection() {
     window.addEventListener('offline', function () {
         console.log('Admin: Gone offline');
         scheduleAdminConnectionStatus(false);
+        hydrateAdminFromLocalCache();
+        refreshAdminCurrentSection();
     });
 
     if (!navigator.onLine) scheduleAdminConnectionStatus(false);
