@@ -201,7 +201,12 @@ function sumExpensesInRange(start, end) {
     var total = 0;
     var startMs = start.getTime();
     var endMs = end.getTime();
+    var isSingleDay = endMs - startMs <= 90000000;
     readCachedExpenses().forEach(function (e) {
+        if (isSingleDay && isExpenseOnLocalDay(e, start)) {
+            total += e.price || 0;
+            return;
+        }
         var ms = expenseTimestampToMs(e);
         if (ms >= startMs && ms < endMs) total += e.price || 0;
     });
@@ -261,7 +266,7 @@ function warmAdminOfflineCache(done) {
     });
 }
 
-var ADMIN_VERSION = 'v92';
+var ADMIN_VERSION = 'v93';
 
 function getDashboardMonth() {
     var sel = document.getElementById('dashboardMonthSelect');
@@ -331,7 +336,47 @@ function normalizeExpenseEntry(entry) {
     if (!entry) return entry;
     var sec = deriveExpenseTimestampSeconds(entry);
     if (sec != null) entry.timestampSeconds = sec;
+    if (!entry.date && entry.timestampSeconds) {
+        entry.date = getLocalDateKey(new Date(entry.timestampSeconds * 1000));
+    }
+    if (!entry.time && entry.timestampSeconds) {
+        var td = new Date(entry.timestampSeconds * 1000);
+        entry.time = pad2Local(td.getHours()) + ':' + pad2Local(td.getMinutes());
+    }
     return entry;
+}
+
+function pad2Local(n) {
+    return String(n).padStart(2, '0');
+}
+
+function getLocalDateKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + pad2Local(d.getMonth() + 1) + '-' + pad2Local(d.getDate());
+}
+
+function expenseCalendarDateKey(item) {
+    if (!item) return '';
+    if (item.date) return String(item.date).slice(0, 10);
+    var sec = deriveExpenseTimestampSeconds(item);
+    return sec != null ? getLocalDateKey(new Date(sec * 1000)) : '';
+}
+
+function isExpenseOnLocalDay(item, dayStart) {
+    return expenseCalendarDateKey(item) === getLocalDateKey(dayStart);
+}
+
+function isExpenseInMonth(item, month, year) {
+    year = year == null ? new Date().getFullYear() : year;
+    var key = expenseCalendarDateKey(item);
+    if (key) {
+        var parts = key.split('-');
+        return parseInt(parts[0], 10) === year && parseInt(parts[1], 10) - 1 === month;
+    }
+    var ms = deriveExpenseTimestampSeconds(item);
+    if (ms == null) return false;
+    var d = new Date(ms * 1000);
+    return d.getFullYear() === year && d.getMonth() === month;
 }
 
 function mergeServerSalesIntoCache(snap) {
@@ -1189,9 +1234,8 @@ function renderDashboardUI(month) {
     });
 
     expenses.forEach(function (e) {
-        var ms = expenseTimestampToMs(e);
-        if (ms >= todayMs && ms < tomorrowMs) todayExpTotal += e.price || 0;
-        if (ms >= startMs && ms < endMs) monthExpTotal += e.price || 0;
+        if (isExpenseOnLocalDay(e, today)) todayExpTotal += e.price || 0;
+        if (isExpenseInMonth(e, month, year)) monthExpTotal += e.price || 0;
     });
 
     var labelEl = document.getElementById('dailySalesMonthLabel');
@@ -3919,25 +3963,17 @@ function resetAllData() {
  }
 
  function filterExpensesByMonth(items, month) {
-     var range = getExpenseMonthRange(month);
-     var startMs = range.start.getTime();
-     var endMs = range.end.getTime();
+     var year = new Date().getFullYear();
      return items.filter(function (item) {
-         var ms = expenseTimestampToMs(item);
-         return ms >= startMs && ms < endMs;
+         return isExpenseInMonth(item, month, year);
      }).sort(function (a, b) {
          return expenseTimestampToMs(b) - expenseTimestampToMs(a);
      });
  }
 
  function filterExpensesByDay(items, dayStart) {
-     var startMs = dayStart.getTime();
-     var dayEnd = new Date(dayStart);
-     dayEnd.setDate(dayEnd.getDate() + 1);
-     var endMs = dayEnd.getTime();
      return items.filter(function (item) {
-         var ms = expenseTimestampToMs(item);
-         return ms >= startMs && ms < endMs;
+         return isExpenseOnLocalDay(item, dayStart);
      }).sort(function (a, b) {
          return expenseTimestampToMs(b) - expenseTimestampToMs(a);
      });
@@ -4197,7 +4233,7 @@ function resetAllData() {
              document.getElementById('expenseModalTitle').textContent = S.addExpense;
              document.getElementById('expenseForm').reset();
              document.getElementById('expenseId').value = '';
-             var today = new Date().toISOString().split('T')[0];
+             var today = getLocalDateKey(new Date());
              var now = new Date().toTimeString().slice(0, 5);
              document.getElementById('expenseDate').value = today;
              document.getElementById('expenseTime').value = now;
@@ -4263,9 +4299,8 @@ function resetAllData() {
      var todayTotal = 0;
      var monthTotal = 0;
      all.forEach(function (e) {
-         var ms = expenseTimestampToMs(e);
-         if (ms >= todayMs && ms < tomorrowMs) todayTotal += e.price || 0;
-         if (ms >= startMs && ms < endMs) monthTotal += e.price || 0;
+         if (isExpenseOnLocalDay(e, today)) todayTotal += e.price || 0;
+         if (isExpenseInMonth(e, month, year)) monthTotal += e.price || 0;
      });
 
      var el = document.getElementById('expTodayTotal');
