@@ -3085,6 +3085,18 @@ body.light-mode[dir="rtl"] .admin-sidebar {
     overflow: hidden;
 }
 
+.expenses-day-heading {
+    margin: 20px 16px 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+}
+
+.expenses-day-heading:first-child {
+    margin-top: 16px;
+}
+
 .expenses-table-wrapper {
     overflow-x: auto;
 }
