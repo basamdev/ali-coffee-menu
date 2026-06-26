@@ -256,7 +256,7 @@ function warmAdminOfflineCache(done) {
     });
 }
 
-var ADMIN_VERSION = 'v82';
+var ADMIN_VERSION = 'v83';
 
 function getDashboardMonth() {
     var sel = document.getElementById('dashboardMonthSelect');
@@ -664,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function () {
     hydrateAdminFromLocalCache();
 
     var LOGO_CANDIDATES = [
-        'images/ali-cafe-logo-circular.png',
+        'assets/ali-logo-page.jpg',
         'assets/logo.svg'
     ];
     window.fallbackLogo = function (img) {
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var next = parseInt(img.dataset.logoTry || '1', 10);
         if (next < LOGO_CANDIDATES.length) {
             img.dataset.logoTry = String(next + 1);
-            img.src = LOGO_CANDIDATES[next] + '?v=82';
+            img.src = LOGO_CANDIDATES[next] + '?v=83';
             return;
         }
         img.dataset.logoFallbackDone = '1';

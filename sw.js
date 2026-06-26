@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ali-cafe-v82';
+const CACHE_NAME = 'ali-cafe-v83';
 const FIREBASE_SDK_URLS = [
     'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
     'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
@@ -19,9 +19,9 @@ const STATIC_ASSETS = [
     './js/app.js',
     './js/admin.js',
     './js/login.js',
-    './images/ali-cafe-logo-circular.png',
-    './images/flag-kurdistan.svg',
+    './assets/ali-logo-page.jpg',
     './assets/ali-new-logo.jpg',
+    './images/flag-kurdistan.svg',
     './assets/apple-touch-icon.png',
     './assets/icon-192.png',
     './assets/icon-512.png',
