@@ -56,7 +56,10 @@ window.dbReady = Promise.resolve(db);
 var shouldEnablePersistence = isAdminAppPage() || !isMobileBrowser();
 if (shouldEnablePersistence) {
     try {
-        window.dbReady = db.enablePersistence({ synchronizeTabs: true })
+        var persistenceOpts = (isAdminAppPage() && isMobileBrowser())
+            ? {}
+            : { synchronizeTabs: true };
+        var persistencePromise = db.enablePersistence(persistenceOpts)
             .then(function () {
                 console.log('Firestore offline persistence enabled');
                 return db;
@@ -71,6 +74,15 @@ if (shouldEnablePersistence) {
                 }
                 return db;
             });
+        window.dbReady = Promise.race([
+            persistencePromise,
+            new Promise(function (resolve) {
+                setTimeout(function () {
+                    console.warn('Firestore persistence slow — continuing without waiting');
+                    resolve(db);
+                }, 4000);
+            })
+        ]);
     } catch (error) {
         console.error('Persistence setup error:', error);
     }

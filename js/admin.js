@@ -146,6 +146,43 @@ function warmAdminOfflineCache(done) {
     });
 }
 
+var ADMIN_VERSION = 'v71';
+
+function adminGetWithTimeout(queryOrRef, ms) {
+    ms = ms || 8000;
+    return Promise.race([
+        queryOrRef.get(),
+        new Promise(function (_, reject) {
+            setTimeout(function () { reject(new Error('Connection timeout')); }, ms);
+        })
+    ]);
+}
+
+function whenAdminDbReady(fn) {
+    var ready = window.dbReady || Promise.resolve(window.db);
+    return Promise.race([
+        ready,
+        new Promise(function (resolve) {
+            setTimeout(function () { resolve(window.db); }, 5000);
+        })
+    ]).then(function () {
+        if (typeof fn === 'function') fn();
+    });
+}
+
+function clearAdminLoadingEl(elementId, html) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    if (el.querySelector('.loading')) {
+        el.innerHTML = html || '';
+    }
+}
+
+function adminSectionStillLoading(elementId) {
+    var el = document.getElementById(elementId);
+    return !!(el && el.querySelector('.loading'));
+}
+
 function stopCategoriesListener() {
     if (categoriesUnsubscribe) {
         try { categoriesUnsubscribe(); } catch (e) {}
@@ -322,7 +359,9 @@ function initAdminPanel() {
 
     var defaultBtn = document.querySelector('.admin-nav-btn.active');
     if (defaultBtn) {
-        loadAdminSection(defaultBtn.getAttribute('data-section'));
+        whenAdminDbReady(function () {
+            loadAdminSection(defaultBtn.getAttribute('data-section'));
+        });
     }
 }
 
@@ -478,7 +517,7 @@ function loadDashboardStats(month) {
 
     document.getElementById('dailySalesMonthLabel').textContent = getMonthName(month, S);
 
-    db.collection('sales').where('timestamp', '>=', today).where('timestamp', '<', tomorrow).get().then(function (snap) {
+    adminGetWithTimeout(db.collection('sales').where('timestamp', '>=', today).where('timestamp', '<', tomorrow), 8000).then(function (snap) {
         var total = 0;
         snap.forEach(function (d) { total += (d.data().total || 0); });
         var el = document.getElementById('todaySales');
@@ -501,7 +540,7 @@ function loadDashboardStats(month) {
     var dayTotals = {};
     var itemCounts = {};
 
-    db.collection('sales').where('timestamp', '>=', mStart).where('timestamp', '<', mEnd).get().then(function (snap) {
+    adminGetWithTimeout(db.collection('sales').where('timestamp', '>=', mStart).where('timestamp', '<', mEnd), 10000).then(function (snap) {
         snap.forEach(function (d) {
             var sale = d.data();
             monthlyTotal += (sale.total || 0);
@@ -570,8 +609,7 @@ function loadDashboardStats(month) {
         if (elExp) elExp.textContent = '0 IQD';
         var elNet = document.getElementById('monthlyNet');
         if (elNet) elNet.textContent = '0 IQD';
-        var container = document.getElementById('dailySalesContainer');
-        if (container) container.innerHTML = '';
+        clearAdminLoadingEl('dailySalesContainer', '<p style="color:#888;padding:16px;">' + S.noSalesData + '</p>');
     });
 }
 
@@ -580,7 +618,7 @@ function loadRecentSales() {
     var container = document.getElementById('recentSalesContainer');
     if (!container) return;
 
-    db.collection('sales').orderBy('timestamp', 'desc').limit(5).get().then(function (snap) {
+    adminGetWithTimeout(db.collection('sales').orderBy('timestamp', 'desc').limit(5), 8000).then(function (snap) {
         if (snap.empty) {
             container.innerHTML = '<p style="color:#888;padding:16px;">' + S.noSalesYet + '</p>';
             return;
@@ -672,7 +710,7 @@ function loadManageItems() {
     var adminContent = document.getElementById('adminContent');
     adminContent.innerHTML =
         '<div class="card">' +
-            '<h2>' + S.manageItems + '</h2>' +
+            '<h2>' + S.manageItems + ' <small style="opacity:0.45;font-size:0.75rem;font-weight:400">' + ADMIN_VERSION + '</small></h2>' +
             '<button class="btn-primary" id="addItemBtn" style="margin-bottom:16px;">' + S.addNewItem + '</button>' +
             '<div class="form-group"><input type="text" id="itemSearch" placeholder="' + S.searchItems + '"></div>' +
             '<div class="form-group admin-items-cat-filter">' +
@@ -785,9 +823,19 @@ function filterItemDocs(docs, searchTerm, cat) {
 
 function startItemsListener() {
     stopItemsListener();
-    if (!window.db || !document.getElementById('itemsList')) return;
+    var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
+    if (!document.getElementById('itemsList')) return;
 
-    itemsUnsubscribe = db.collection('menuItems').onSnapshot(function (snap) {
+    hydrateItemsUiFromCache();
+
+    if (!window.db) {
+        if (!_itemsSnapDocs.length) {
+            clearAdminLoadingEl('itemsList', '<p>' + S.noItemsFound + '</p>');
+        }
+        return;
+    }
+
+    function applyItemsSnap(snap) {
         _itemsSnapDocs = collectItemDocsFromSnap(snap);
         refreshCategoryFilterOptions();
         refreshItemCategoryDropdown();
@@ -805,7 +853,7 @@ function startItemsListener() {
             menuCache.push(Object.assign({ id: d.id }, data));
         });
         localStorage.setItem('cachedCashierItems', JSON.stringify(cashierCache));
-        localStorage.setItem('cachedMenuItems', JSON.stringify(menuCache));
+        writeCachedMenuItemsFlat(menuCache);
 
         var catNames = {};
         _itemsSnapDocs.forEach(function (d) {
@@ -813,9 +861,22 @@ function startItemsListener() {
             if (c && c !== 'Water') catNames[c] = true;
         });
         localStorage.setItem('cachedMenuCategoryNames', JSON.stringify(Object.keys(catNames)));
+    }
+
+    adminGetWithTimeout(db.collection('menuItems'), 8000).then(applyItemsSnap).catch(function (e) {
+        console.warn('[admin items] get failed:', e.message);
+        if (!hydrateItemsUiFromCache()) {
+            clearAdminLoadingEl('itemsList', '<p style="color:#C62828;">' + S.errorPrefix + (S.menuConnectionHint || 'Check connection') + '</p>');
+        }
+    });
+
+    itemsUnsubscribe = db.collection('menuItems').onSnapshot(function (snap) {
+        applyItemsSnap(snap);
     }, function (e) {
         console.error('Items listener error:', e);
-        if (!hydrateItemsUiFromCache()) loadItemsList();
+        if (!hydrateItemsUiFromCache()) {
+            clearAdminLoadingEl('itemsList', '<p style="color:#C62828;">' + S.errorPrefix + e.message + '</p>');
+        }
     });
 }
 
@@ -830,7 +891,7 @@ function loadItemsList() {
          if (el) el.innerHTML = '<p>' + S.noItemsFound + '</p>';
          return;
      }
-     db.collection('menuItems').get().then(function (snap) {
+     adminGetWithTimeout(db.collection('menuItems'), 8000).then(function (snap) {
          var docs = [];
          snap.forEach(function (d) { var data = d.data(); if (data.category !== 'Water') { docs.push(d); } });
          _itemsSnapDocs = docs;
@@ -852,7 +913,7 @@ function loadCategoriesDropdown() {
         return Promise.resolve();
     }
 
-    return db.collection('categories').get().then(function (snap) {
+    return adminGetWithTimeout(db.collection('categories'), 8000).then(function (snap) {
         var categories = [];
         snap.forEach(function (doc) {
             categories.push({ id: doc.id, data: doc.data() });
@@ -1048,7 +1109,7 @@ function loadCategoryFilter() {
         return;
     }
 
-    db.collection('categories').get().then(function (snap) {
+    adminGetWithTimeout(db.collection('categories'), 8000).then(function (snap) {
         var categories = [];
         snap.forEach(function (doc) {
             categories.push({ id: doc.id, data: doc.data() });
@@ -1604,10 +1665,30 @@ function loadCategoriesList() {
 
     // Show cached categories immediately (includes ones just saved offline).
     renderCategoriesListNow();
+    clearAdminLoadingEl('categoriesList', '');
 
-    if (!window.db) return;
+    if (!window.db) {
+        if (!readCachedCategories().length) {
+            clearAdminLoadingEl('categoriesList', '<p style="color:var(--text-muted);padding:8px 2px;">' + (i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en).noCategories + '</p>');
+        }
+        return;
+    }
 
-    db.collection('menuItems').get().then(function (snap) {
+    adminGetWithTimeout(db.collection('categories'), 8000).then(function (snap) {
+        var fromServer = [];
+        snap.forEach(function (doc) {
+            fromServer.push({ id: doc.id, data: doc.data() });
+        });
+        var merged = mergeCategoryLists(fromServer, readCachedCategories());
+        localStorage.setItem('cachedCategories', JSON.stringify(merged));
+        var have = {};
+        merged.forEach(function (c) { have[c.id] = true; });
+        renderCategoriesTable(mergeMenuCategories(merged, have));
+    }).catch(function () {
+        renderCategoriesListNow();
+    });
+
+    adminGetWithTimeout(db.collection('menuItems'), 8000).then(function (snap) {
         var names = {};
         snap.forEach(function (d) { var c = (d.data() || {}).category; if (c) names[c] = true; });
         localStorage.setItem('cachedMenuCategoryNames', JSON.stringify(Object.keys(names)));
@@ -2052,6 +2133,22 @@ function loadCashierItems() {
     }
 
     stopCashierListener();
+
+    adminGetWithTimeout(db.collection('menuItems'), 8000).then(function (snap) {
+        var items = normalizeCashierItems(snap);
+        localStorage.setItem('cachedCashierItems', JSON.stringify(items));
+        refreshCategoriesCache(function () {
+            if (items.length > 0) {
+                renderCashierProducts(items);
+            } else {
+                showCashierEmptyState();
+            }
+        });
+    }).catch(function (e) {
+        console.warn('[cashier] get failed:', e.message);
+        loadCashierItemsFromCache();
+    });
+
     cashierUnsubscribe = db.collection('menuItems').onSnapshot(function (snap) {
         var items = normalizeCashierItems(snap);
         localStorage.setItem('cachedCashierItems', JSON.stringify(items));
@@ -3083,10 +3180,9 @@ function resetAllData() {
      }
 
      var range = getExpenseMonthRange(month);
-     db.collection('expenses')
+     adminGetWithTimeout(db.collection('expenses')
          .where('timestamp', '>=', range.start)
-         .where('timestamp', '<', range.end)
-         .get()
+         .where('timestamp', '<', range.end), 8000)
          .then(function (snap) {
              var allCached = readCachedExpenses();
              var monthEntries = [];
@@ -3114,7 +3210,7 @@ function resetAllData() {
              if (cachedMonth.length > 0) {
                  renderExpensesList(month, cachedMonth);
              } else {
-                 list.innerHTML = '<div class="expenses-empty"><p style="color:#C62828;">' + S.errorPrefix + e.message + '</p></div>';
+                 renderExpensesList(month, []);
              }
          });
  }
