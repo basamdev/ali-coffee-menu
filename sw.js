@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ali-cafe-v100';
+const CACHE_NAME = 'ali-cafe-v101';
 const APP_SHELL_PATHS = /\.(html|css|js)$/i;
 const FIREBASE_SDK_URLS = [
     'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
     './assets/icon-512.png',
     './assets/icon-maskable-512.png',
     './assets/logo.svg',
+    './assets/currency-icon.png',
     './images/install/ios-step-1.png',
     './images/install/ios-step-2.png',
     './images/install/ios-step-3.png',

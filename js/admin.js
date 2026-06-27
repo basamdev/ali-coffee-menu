@@ -266,7 +266,7 @@ function warmAdminOfflineCache(done) {
     });
 }
 
-var ADMIN_VERSION = 'v100';
+var ADMIN_VERSION = 'v101';
 
 function getDashboardMonth() {
     var sel = document.getElementById('dashboardMonthSelect');
@@ -3831,7 +3831,15 @@ function loadSettings() {
                       '<input type="text" id="cafeLocationLabel" value="' + (localStorage.getItem('cafeLocationLabel') || 'بەحرکە-مجەمع') + '">' +
                   '</div>' +
               '</div>' +
-              '<div class="form-group" style="margin-top:4px;margin-bottom:0;"><label>' + S.currency + '</label><input type="text" value="IQD" readonly></div>' +
+              '<div class="settings-social-field">' +
+                  '<span class="settings-social-icon settings-social-icon--currency" aria-hidden="true">' +
+                      '<img src="assets/currency-icon.png" alt="" width="28" height="28">' +
+                  '</span>' +
+                  '<div class="settings-social-input-wrap">' +
+                      '<label for="cafeCurrency">' + S.currency + '</label>' +
+                      '<input type="text" id="cafeCurrency" value="IQD" readonly>' +
+                  '</div>' +
+              '</div>' +
           '</div>' +
           '<div class="card settings-social-card" style="margin-top:20px;">' +
               '<div class="settings-section-label"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> ' + S.socialLinks + '</div>' +
