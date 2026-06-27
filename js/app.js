@@ -239,8 +239,9 @@ const i18n = {
         iosStep2: '«Add to Home Screen» هەڵبژێرە',
         iosStep3: '«Add» دابگرە — ئایکۆنی Ali Coffee لەسەر سکرین دەردەکەوێت',
         androidStep1: 'Menu (⋮) لە گۆشەی سەرەوەی Chrome دابگرە',
-        androidStep2: '«Add to Home screen» یان «Install app» هەڵبژێرە',
-        androidStep3: '«Add» دابگرە — وەک ئەپێکی ڕاستەقینە دەکرێتەوە',
+        androidStep2: '«Add to Home screen» هەڵبژێرە',
+        androidStep3: '«Install» هەڵبژێرە',
+        androidStep4: '«Install» دابگرە — ئەپەکە لەسەر مۆبایلەکەت دادەمەزرێت',
     },
     ar: {
         menuTitle: 'قائمتنا',
@@ -445,8 +446,9 @@ const i18n = {
         iosStep2: 'اختر «Add to Home Screen»',
         iosStep3: 'اضغط «Add» — يظهر أيقونة Ali Coffee على الشاشة',
         androidStep1: 'اضغط القائمة (⋮) أعلى Chrome',
-        androidStep2: 'اختر «Add to Home screen» أو «Install app»',
-        androidStep3: 'اضغط «Add» — يفتح كتطبيق حقيقي',
+        androidStep2: 'اختر «Add to Home screen»',
+        androidStep3: 'اختر «Install»',
+        androidStep4: 'اضغط «Install» — يُثبت تطبيق Ali Coffee',
     },
     en: {
         menuTitle: 'Our Menu',
@@ -668,8 +670,9 @@ const i18n = {
         iosStep2: 'Choose «Add to Home Screen»',
         iosStep3: 'Tap «Add» — Ali Coffee icon appears on your home screen',
         androidStep1: 'Tap Menu (⋮) at the top of Chrome',
-        androidStep2: 'Choose «Add to Home screen» or «Install app»',
-        androidStep3: 'Tap «Add» — opens like a real app',
+        androidStep2: 'Choose «Add to Home screen»',
+        androidStep3: 'Choose «Install»',
+        androidStep4: 'Tap «Install» — Ali Coffee is added to your phone',
     }
 };
 
@@ -2743,7 +2746,8 @@ var INSTALL_TUTORIAL_IMAGES = {
     android: [
         'images/install/android-step-1.png',
         'images/install/android-step-2.png',
-        'images/install/android-step-3.png'
+        'images/install/android-step-3.png',
+        'images/install/android-step-4.png'
     ]
 };
 

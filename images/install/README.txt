@@ -10,9 +10,10 @@ iPhone (iOS):
   ios-step-4.png   (tap Add)
 
 Android:
-  android-step-1.png
-  android-step-2.png
-  android-step-3.png
+  android-step-1.png   (tap Menu ⋮ in Chrome)
+  android-step-2.png   (choose Add to Home screen)
+  android-step-3.png   (choose Install)
+  android-step-4.png   (confirm Install)
 
 The menu shows them when the user taps:
 Info button → "زیادکردن بۆ سکرین" / Add to Home Screen

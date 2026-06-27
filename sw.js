@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ali-cafe-v97';
+const CACHE_NAME = 'ali-cafe-v98';
 const APP_SHELL_PATHS = /\.(html|css|js)$/i;
 const FIREBASE_SDK_URLS = [
     'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
@@ -20,7 +20,11 @@ const STATIC_ASSETS = [
     './images/install/ios-step-1.png',
     './images/install/ios-step-2.png',
     './images/install/ios-step-3.png',
-    './images/install/ios-step-4.png'
+    './images/install/ios-step-4.png',
+    './images/install/android-step-1.png',
+    './images/install/android-step-2.png',
+    './images/install/android-step-3.png',
+    './images/install/android-step-4.png'
 ];
 
 self.addEventListener('message', function (event) {
