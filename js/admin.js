@@ -3898,9 +3898,16 @@ function loadSettings() {
               var whatsappPhone = document.getElementById('whatsappPhone').value.trim();
               var cafeLocationUrl = document.getElementById('cafeLocationUrl').value.trim();
               var cafeLocationLabel = document.getElementById('cafeLocationLabel').value.trim();
-              var cafeInstagram = document.getElementById('cafeInstagram').value.trim();
-              var cafeTiktok = document.getElementById('cafeTiktok').value.trim();
-              var cafeSnapchat = document.getElementById('cafeSnapchat').value.trim();
+              var cafeInstagram = typeof normalizeSocialUrl === 'function'
+                  ? normalizeSocialUrl(document.getElementById('cafeInstagram').value.trim(), 'instagram')
+                  : document.getElementById('cafeInstagram').value.trim();
+              var cafeTiktok = typeof normalizeSocialUrl === 'function'
+                  ? normalizeSocialUrl(document.getElementById('cafeTiktok').value.trim(), 'tiktok')
+                  : document.getElementById('cafeTiktok').value.trim();
+              var cafeSnapchat = typeof normalizeSocialUrl === 'function'
+                  ? normalizeSocialUrl(document.getElementById('cafeSnapchat').value.trim(), 'snapchat')
+                  : document.getElementById('cafeSnapchat').value.trim();
+
               localStorage.setItem('cafeName', cafeName);
               localStorage.setItem('whatsappPhone', whatsappPhone);
               localStorage.setItem('cafeLocationUrl', cafeLocationUrl);
@@ -3908,7 +3915,46 @@ function loadSettings() {
               localStorage.setItem('cafeInstagram', cafeInstagram);
               localStorage.setItem('cafeTiktok', cafeTiktok);
               localStorage.setItem('cafeSnapchat', cafeSnapchat);
-              alert(S.settingsSaved);
+
+              var settingsPayload = {
+                  cafeName: cafeName,
+                  whatsappPhone: whatsappPhone,
+                  cafeLocationUrl: cafeLocationUrl,
+                  cafeLocationLabel: cafeLocationLabel,
+                  cafeInstagram: cafeInstagram,
+                  cafeTiktok: cafeTiktok,
+                  cafeSnapchat: cafeSnapchat
+              };
+
+              if (typeof saveCafeSettingsToFirestore === 'function') {
+                  saveCafeSettingsToFirestore(settingsPayload, function (err) {
+                      if (err) {
+                          alert(S.settingsSaved + ' (local only — cloud sync failed)');
+                      } else {
+                          alert(S.settingsSaved);
+                      }
+                  });
+              } else {
+                  alert(S.settingsSaved);
+              }
+          });
+      }
+
+      if (typeof loadCafeSettingsFromFirestore === 'function') {
+          loadCafeSettingsFromFirestore(function () {
+              var fields = {
+                  cafeName: 'cafeName',
+                  whatsappPhone: 'whatsappPhone',
+                  cafeLocationUrl: 'cafeLocationUrl',
+                  cafeLocationLabel: 'cafeLocationLabel',
+                  cafeInstagram: 'cafeInstagram',
+                  cafeTiktok: 'cafeTiktok',
+                  cafeSnapchat: 'cafeSnapchat'
+              };
+              Object.keys(fields).forEach(function (storageKey) {
+                  var input = document.getElementById(fields[storageKey]);
+                  if (input) input.value = localStorage.getItem(storageKey) || input.value || '';
+              });
           });
       }
 

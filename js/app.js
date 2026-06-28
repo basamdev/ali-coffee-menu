@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function () {
         setupOfflineDetection();
 
         if (document.getElementById('menuGrid')) {
+            loadCafeSettingsFromFirestore(function () {
+                updateCafeInfoPanel();
+            });
             loadMenuItems();
             setupLanguageButtons();
             initHeroTitleSequence();
@@ -2358,6 +2361,99 @@ function sendWhatsAppOrder() {
    Cafe Info Panel
    ======================================== */
 
+var CAFE_SETTING_KEYS = [
+    'cafeName',
+    'whatsappPhone',
+    'cafeLocationUrl',
+    'cafeLocationLabel',
+    'cafeInstagram',
+    'cafeTiktok',
+    'cafeSnapchat'
+];
+
+function normalizeSocialUrl(url, platform) {
+    url = (url || '').trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.indexOf('//') === 0) return 'https:' + url;
+
+    var cleaned = url.replace(/^@+/, '').replace(/\s+/g, '');
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(cleaned)) {
+        return 'https://' + cleaned.replace(/^https?:\/\//i, '');
+    }
+
+    if (platform === 'instagram') {
+        return 'https://instagram.com/' + cleaned.replace(/^instagram\.com\/?/i, '');
+    }
+    if (platform === 'tiktok') {
+        return 'https://www.tiktok.com/@' + cleaned.replace(/^@+/, '').replace(/^tiktok\.com\/?@?/i, '');
+    }
+    if (platform === 'snapchat') {
+        return 'https://www.snapchat.com/add/' + cleaned.replace(/^@+/, '').replace(/^snapchat\.com\/add\/?/i, '');
+    }
+
+    return 'https://' + cleaned;
+}
+
+function applyCafeSettingsToLocalStorage(data) {
+    if (!data || typeof data !== 'object') return;
+    CAFE_SETTING_KEYS.forEach(function (key) {
+        if (data[key] != null && String(data[key]).trim() !== '') {
+            localStorage.setItem(key, String(data[key]).trim());
+        }
+    });
+}
+
+function getCafeSettingsFromLocalStorage() {
+    var data = {};
+    CAFE_SETTING_KEYS.forEach(function (key) {
+        var value = localStorage.getItem(key);
+        if (value != null && String(value).trim() !== '') {
+            data[key] = String(value).trim();
+        }
+    });
+    return data;
+}
+
+function loadCafeSettingsFromFirestore(callback) {
+    if (!window.db) {
+        if (callback) callback();
+        return;
+    }
+
+    window.db.collection('settings').doc('cafe').get().then(function (doc) {
+        if (doc.exists) {
+            applyCafeSettingsToLocalStorage(doc.data());
+        }
+        if (callback) callback();
+    }).catch(function (err) {
+        console.warn('Could not load cafe settings:', err.message);
+        if (callback) callback();
+    });
+}
+
+function saveCafeSettingsToFirestore(data, callback) {
+    if (!window.db) {
+        if (callback) callback(new Error('Firestore not ready'));
+        return;
+    }
+
+    var payload = Object.assign({}, data, {
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    window.db.collection('settings').doc('cafe').set(payload, { merge: true }).then(function () {
+        if (callback) callback(null);
+    }).catch(function (err) {
+        if (callback) callback(err);
+    });
+}
+
+window.loadCafeSettingsFromFirestore = loadCafeSettingsFromFirestore;
+window.saveCafeSettingsToFirestore = saveCafeSettingsToFirestore;
+window.normalizeSocialUrl = normalizeSocialUrl;
+window.applyCafeSettingsToLocalStorage = applyCafeSettingsToLocalStorage;
+
 function getCafeInfo() {
     var defaultUrl = 'https://maps.app.goo.gl/mmi5iv7mnGKxKZoq9?g_st=ic';
     var defaultLabel = 'بەحرکە-مجەمع';
@@ -2453,34 +2549,42 @@ function updateCafeInfoPanel() {
     var snapBtn = document.getElementById('cafeSnapchatBtn');
     var socialBlock = document.querySelector('.cafe-info-block--social');
 
+    var instagramUrl = normalizeSocialUrl(info.instagram, 'instagram');
+    var tiktokUrl = normalizeSocialUrl(info.tiktok, 'tiktok');
+    var snapchatUrl = normalizeSocialUrl(info.snapchat, 'snapchat');
+
     function wireSocialLink(btn, url) {
         if (!btn) return;
         if (url) {
             btn.href = url;
             btn.style.display = '';
+            btn.removeAttribute('aria-hidden');
         } else {
             btn.href = '#';
             btn.style.display = 'none';
+            btn.setAttribute('aria-hidden', 'true');
         }
     }
 
-    wireSocialLink(instaBtn, info.instagram);
-    wireSocialLink(tiktokBtn, info.tiktok);
-    wireSocialLink(snapBtn, info.snapchat);
+    wireSocialLink(instaBtn, instagramUrl);
+    wireSocialLink(tiktokBtn, tiktokUrl);
+    wireSocialLink(snapBtn, snapchatUrl);
 
     if (socialBlock) {
-        socialBlock.style.display = (info.instagram || info.tiktok || info.snapchat) ? '' : 'none';
+        socialBlock.style.display = (instagramUrl || tiktokUrl || snapchatUrl) ? '' : 'none';
     }
 }
 
 function openCafeInfoPanel() {
-    updateCafeInfoPanel();
-    var overlay = document.getElementById('cafeInfoOverlay');
-    if (overlay) {
-        overlay.classList.add('open');
-        overlay.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('cafe-info-open');
-    }
+    loadCafeSettingsFromFirestore(function () {
+        updateCafeInfoPanel();
+        var overlay = document.getElementById('cafeInfoOverlay');
+        if (overlay) {
+            overlay.classList.add('open');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('cafe-info-open');
+        }
+    });
 }
 
 function closeCafeInfoPanel() {
