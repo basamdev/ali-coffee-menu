@@ -422,19 +422,33 @@
     background: linear-gradient(135deg, #5c6bc0, #3949ab);
 }
 
-.settings-hours-wrap {
+.settings-hours-field {
+    align-items: flex-start;
+    overflow: visible;
+}
+
+.settings-hours-field .settings-social-input-wrap {
+    overflow: visible;
+}
+
+.settings-hours-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    overflow: visible;
+}
+
+.settings-hours-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 14px;
+    width: 100%;
 }
 
 .settings-hours-input label {
     display: block;
     margin-bottom: 6px;
-}
-
-.settings-hours-input input {
-    width: 100%;
 }
 
 .cafe-time-picker {
@@ -452,83 +466,106 @@
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     text-align: start;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.cafe-time-picker-btn-text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cafe-time-picker-chevron {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    opacity: 0.55;
+    transition: transform 0.2s ease;
+}
+
+.cafe-time-picker-btn.is-open .cafe-time-picker-chevron {
+    transform: rotate(180deg);
+}
+
 .cafe-time-picker-btn:hover,
-.cafe-time-picker-btn[aria-expanded="true"] {
+.cafe-time-picker-btn.is-open {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.cafe-time-picker-btn i {
+.cafe-time-picker-btn i.fa-clock {
     color: var(--accent);
+    flex-shrink: 0;
 }
 
 .cafe-time-picker-panel {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
-    z-index: 30;
+    margin-top: 10px;
     padding: 12px;
     border-radius: 14px;
     border: 1px solid var(--border);
     background: var(--surface);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.cafe-time-picker-row {
+.cafe-time-picker-panel[hidden] {
+    display: none !important;
+}
+
+.cafe-time-picker-panel:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cafe-time-hourmin {
     display: grid;
-    grid-template-columns: 1fr auto 1fr 1.2fr;
+    grid-template-columns: 1fr auto 1fr;
     gap: 8px;
     align-items: center;
-    margin-bottom: 10px;
 }
 
 .cafe-time-colon {
     font-weight: 700;
     text-align: center;
+    padding: 0 2px;
 }
 
 .cafe-time-select {
     width: 100%;
-    padding: 10px 8px;
+    min-width: 0;
+    padding: 11px 10px;
     border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 0.92rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    appearance: auto;
+    -webkit-appearance: menulist;
+}
+
+.cafe-time-period {
+    width: 100%;
 }
 
 .cafe-time-apply-btn {
     width: 100%;
+    margin-top: 2px;
 }
 
 .cafe-hours-save-btn {
-    grid-column: 1 / -1;
+    width: 100%;
     margin-top: 4px;
 }
 
-@media (max-width: 520px) {
-    .settings-hours-wrap {
+@media (max-width: 640px) {
+    .settings-hours-row {
         grid-template-columns: 1fr;
-    }
-
-    .cafe-time-picker-row {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .cafe-time-colon {
-        display: none;
-    }
-
-    .cafe-time-period {
-        grid-column: 1 / -1;
     }
 }
 

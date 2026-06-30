@@ -3941,15 +3941,16 @@ function buildCafeTimePickerMarkup(idPrefix, timeValue, fallback, S, lang) {
     return '<div class="cafe-time-picker" data-prefix="' + idPrefix + '">' +
         '<button type="button" class="cafe-time-picker-btn" id="' + idPrefix + 'TimeBtn" aria-expanded="false">' +
             '<i class="fa-regular fa-clock" aria-hidden="true"></i>' +
-            '<span id="' + idPrefix + 'TimeLabel">' + display + '</span>' +
+            '<span class="cafe-time-picker-btn-text" id="' + idPrefix + 'TimeLabel">' + display + '</span>' +
+            '<i class="fa-solid fa-chevron-down cafe-time-picker-chevron" aria-hidden="true"></i>' +
         '</button>' +
         '<div class="cafe-time-picker-panel" id="' + idPrefix + 'TimePanel" hidden>' +
-            '<div class="cafe-time-picker-row">' +
+            '<div class="cafe-time-hourmin">' +
                 '<select class="cafe-time-select" id="' + idPrefix + 'Hour" aria-label="hour">' + hourOpts + '</select>' +
                 '<span class="cafe-time-colon">:</span>' +
                 '<select class="cafe-time-select" id="' + idPrefix + 'Minute" aria-label="minute">' + minOpts + '</select>' +
-                '<select class="cafe-time-select cafe-time-period" id="' + idPrefix + 'Period" aria-label="period">' + periodOpts + '</select>' +
             '</div>' +
+            '<select class="cafe-time-select cafe-time-period" id="' + idPrefix + 'Period" aria-label="period">' + periodOpts + '</select>' +
             '<button type="button" class="btn-secondary cafe-time-apply-btn" id="' + idPrefix + 'TimeApply">' + (S.applyTime || 'Apply') + '</button>' +
         '</div>' +
         '<input type="hidden" id="' + idPrefix + 'Time" value="' + parts.normalized + '">' +
@@ -3986,8 +3987,14 @@ function applyCafeTimePicker(prefix, lang) {
     updateCafeTimePickerDisplay(prefix, lang);
     var panel = document.getElementById(prefix + 'TimePanel');
     var btn = document.getElementById(prefix + 'TimeBtn');
-    if (panel) panel.hidden = true;
-    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (panel) {
+        panel.hidden = true;
+        panel.classList.remove('is-open');
+    }
+    if (btn) {
+        btn.setAttribute('aria-expanded', 'false');
+        btn.classList.remove('is-open');
+    }
 }
 
 function syncCafeTimePickerFromStorage(prefix, lang) {
@@ -4027,9 +4034,19 @@ function setupCafeTimePickers(lang) {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
             var willOpen = panel.hidden;
-            document.querySelectorAll('.cafe-time-picker-panel').forEach(function (p) { p.hidden = true; });
-            document.querySelectorAll('.cafe-time-picker-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
-            panel.hidden = !willOpen;
+            document.querySelectorAll('.cafe-time-picker-panel').forEach(function (p) {
+                p.hidden = true;
+                p.classList.remove('is-open');
+            });
+            document.querySelectorAll('.cafe-time-picker-btn').forEach(function (b) {
+                b.setAttribute('aria-expanded', 'false');
+                b.classList.remove('is-open');
+            });
+            if (willOpen) {
+                panel.hidden = false;
+                panel.classList.add('is-open');
+                btn.classList.add('is-open');
+            }
             btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
         });
 
@@ -4053,8 +4070,14 @@ function setupCafeTimePickers(lang) {
         window._cafeTimePickerDocClose = true;
         document.addEventListener('click', function (e) {
             if (e.target.closest('.cafe-time-picker')) return;
-            document.querySelectorAll('.cafe-time-picker-panel').forEach(function (p) { p.hidden = true; });
-            document.querySelectorAll('.cafe-time-picker-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+            document.querySelectorAll('.cafe-time-picker-panel').forEach(function (p) {
+                p.hidden = true;
+                p.classList.remove('is-open');
+            });
+            document.querySelectorAll('.cafe-time-picker-btn').forEach(function (b) {
+                b.setAttribute('aria-expanded', 'false');
+                b.classList.remove('is-open');
+            });
         });
     }
 
@@ -4180,14 +4203,16 @@ function loadSettings() {
               '</div>' +
               '<div class="settings-social-field settings-hours-field">' +
                   '<span class="settings-social-icon settings-social-icon--hours" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>' +
-                  '<div class="settings-social-input-wrap settings-hours-wrap">' +
-                      '<div class="settings-hours-input">' +
-                          '<label>' + S.cafeOpenTimeLabel + '</label>' +
-                          buildCafeTimePickerMarkup('cafeOpen', openTimeStored, '14:00', S, settingsLang) +
-                      '</div>' +
-                      '<div class="settings-hours-input">' +
-                          '<label>' + S.cafeCloseTimeLabel + '</label>' +
-                          buildCafeTimePickerMarkup('cafeClose', closeTimeStored, '02:00', S, settingsLang) +
+                  '<div class="settings-social-input-wrap settings-hours-block">' +
+                      '<div class="settings-hours-row">' +
+                          '<div class="settings-hours-input">' +
+                              '<label>' + S.cafeOpenTimeLabel + '</label>' +
+                              buildCafeTimePickerMarkup('cafeOpen', openTimeStored, '14:00', S, settingsLang) +
+                          '</div>' +
+                          '<div class="settings-hours-input">' +
+                              '<label>' + S.cafeCloseTimeLabel + '</label>' +
+                              buildCafeTimePickerMarkup('cafeClose', closeTimeStored, '02:00', S, settingsLang) +
+                          '</div>' +
                       '</div>' +
                       '<button type="button" class="btn-primary cafe-hours-save-btn" id="saveCafeHoursBtn">' + S.saveHours + '</button>' +
                   '</div>' +
