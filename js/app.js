@@ -141,6 +141,10 @@ const i18n = {
         locationLabelField: 'ناونیشان (دەردەکەوێت لە مێنوو)',
         cafeOpenTimeLabel: 'کاتی کردنەوە',
         cafeCloseTimeLabel: 'کاتی داخراو',
+        cafeOpenTimePlaceholder: '٢:٠٠ دوای نیوەڕۆ',
+        cafeCloseTimePlaceholder: '٢:٠٠ بەیانی',
+        timeAm: 'بەیانی',
+        timePm: 'دوای نیوەڕۆ',
         cafeHoursDaily: 'ڕۆژانە',
         callWhatsAppNumber: 'ژمارەی پەیوەندی / واتساپ',
         currency: 'دراو',
@@ -360,6 +364,10 @@ const i18n = {
         locationLabelField: 'العنوان (يظهر في القائمة)',
         cafeOpenTimeLabel: 'وقت الفتح',
         cafeCloseTimeLabel: 'وقت الإغلاق',
+        cafeOpenTimePlaceholder: '٢:٠٠ مساءً',
+        cafeCloseTimePlaceholder: '٢:٠٠ صباحاً',
+        timeAm: 'صباحاً',
+        timePm: 'مساءً',
         cafeHoursDaily: 'يومياً',
         callWhatsAppNumber: 'رقم الاتصال / واتساب',
         currency: 'العملة',
@@ -579,6 +587,10 @@ const i18n = {
         locationLabelField: 'Address label (shown on menu)',
         cafeOpenTimeLabel: 'Opening time',
         cafeCloseTimeLabel: 'Closing time',
+        cafeOpenTimePlaceholder: '2:00 PM',
+        cafeCloseTimePlaceholder: '2:00 AM',
+        timeAm: 'AM',
+        timePm: 'PM',
         cafeHoursDaily: 'Daily',
         callWhatsAppNumber: 'Call / WhatsApp number',
         currency: 'Currency',
@@ -1735,6 +1747,7 @@ function applyLanguageUI(lang) {
 
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
         if (element.closest('#menuHeroBrand')) return;
+        if (element.id === 'cafeHoursText') return;
         var key = element.getAttribute('data-i18n');
         if (strings[key]) element.textContent = strings[key];
     });
@@ -2386,6 +2399,22 @@ var CAFE_SETTING_KEYS = [
     'cafeSnapchat'
 ];
 
+function toLocaleDigits(value, lang) {
+    var text = String(value);
+    if (lang !== 'ku' && lang !== 'ar') return text;
+    return text.replace(/\d/g, function (d) {
+        return '٠١٢٣٤٥٦٧٨٩'[parseInt(d, 10)];
+    });
+}
+
+function parseCafePeriodToPm(periodText) {
+    var p = (periodText || '').trim().toLowerCase();
+    if (!p) return null;
+    if (/^p(?:m)?$/i.test(p) || p === 'م' || /مساء/.test(p) || /دوای\s*نیوەڕۆ|دواینیوەڕۆ/.test(p)) return true;
+    if (/^a(?:m)?$/i.test(p) || p === 'ص' || /صباح/.test(p) || /بەیانی/.test(p)) return false;
+    return null;
+}
+
 function normalizeCafeTimeValue(value, fallback) {
     fallback = fallback || '14:00';
     var raw = (value == null ? '' : String(value)).trim();
@@ -2396,15 +2425,28 @@ function normalizeCafeTimeValue(value, fallback) {
         .replace(/[\u200e\u200f]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+
+    var matchPeriod = normalizedRaw.match(/^(\d{1,2})(?::(\d{2}))?\s*(.+)$/);
+    if (matchPeriod) {
+        var hourPart = parseInt(matchPeriod[1], 10);
+        var minutePart = parseInt(matchPeriod[2] || '0', 10);
+        var isPm = parseCafePeriodToPm(matchPeriod[3]);
+        if (isPm !== null && !isNaN(hourPart) && hourPart >= 1 && hourPart <= 12 && !isNaN(minutePart) && minutePart >= 0 && minutePart <= 59) {
+            var hour24Period = hourPart % 12;
+            if (isPm) hour24Period += 12;
+            return String(hour24Period).padStart(2, '0') + ':' + String(minutePart).padStart(2, '0');
+        }
+    }
+
     var match12 = normalizedRaw.match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp](?:[Mm])?|[صم])$/);
     if (match12) {
         var hour12 = parseInt(match12[1], 10);
         var minute12 = parseInt(match12[2] || '0', 10);
         var marker = String(match12[3] || '').toLowerCase();
-        var isPm = marker.indexOf('p') === 0 || marker === 'م';
+        var isPmMarker = marker.indexOf('p') === 0 || marker === 'م';
         if (!isNaN(hour12) && hour12 >= 1 && hour12 <= 12 && !isNaN(minute12) && minute12 >= 0 && minute12 <= 59) {
             var hour24 = hour12 % 12;
-            if (isPm) hour24 += 12;
+            if (isPmMarker) hour24 += 12;
             return String(hour24).padStart(2, '0') + ':' + String(minute12).padStart(2, '0');
         }
     }
@@ -2435,17 +2477,20 @@ function parseCafeTimeToMinutes(timeStr, fallbackHour) {
 function formatCafeTimeForDisplay(timeStr, lang) {
     var normalized = normalizeCafeTimeValue(timeStr, '14:00');
     var parts = normalized.split(':');
-    var hour = parseInt(parts[0], 10);
+    var hour24 = parseInt(parts[0], 10);
     var minute = parseInt(parts[1], 10);
-    var locale = lang === 'ar' ? 'ar-IQ' : (lang === 'ku' ? 'ku-IQ' : 'en-US');
-    var dt = new Date(2000, 0, 1, hour, minute, 0, 0);
-    try {
-        return dt.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
-    } catch (e) {
-        var ampm = hour >= 12 ? 'PM' : 'AM';
-        var hour12 = hour % 12 || 12;
-        return hour12 + ':' + String(minute).padStart(2, '0') + ' ' + ampm;
+    var strings = i18n[lang] || i18n.en;
+    var hour12 = hour24 % 12 || 12;
+    var minuteStr = String(minute).padStart(2, '0');
+    var isPm = hour24 >= 12;
+
+    if (lang === 'ku' || lang === 'ar') {
+        var clock = toLocaleDigits(hour12, lang) + ':' + toLocaleDigits(minuteStr, lang);
+        var period = isPm ? (strings.timePm || 'PM') : (strings.timeAm || 'AM');
+        return clock + ' ' + period;
     }
+
+    return hour12 + ':' + minuteStr + ' ' + (isPm ? 'PM' : 'AM');
 }
 
 function formatCafeHoursDisplay(info, lang) {

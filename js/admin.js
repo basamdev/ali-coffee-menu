@@ -3973,11 +3973,11 @@ function loadSettings() {
                   '<div class="settings-social-input-wrap settings-hours-wrap">' +
                       '<div class="settings-hours-input">' +
                           '<label for="cafeOpenTime">' + S.cafeOpenTimeLabel + '</label>' +
-                          '<input type="text" id="cafeOpenTime" value="' + (typeof formatCafeTimeForDisplay === 'function' ? formatCafeTimeForDisplay((typeof normalizeCafeTimeValue === 'function' ? normalizeCafeTimeValue(localStorage.getItem('cafeOpenTime'), '14:00') : (localStorage.getItem('cafeOpenTime') || '14:00')), (localStorage.getItem('selectedLang') || 'ku')) : (localStorage.getItem('cafeOpenTime') || '2:00 PM')) + '" placeholder="2:00 PM">' +
+                          '<input type="text" id="cafeOpenTime" value="' + (typeof formatCafeTimeForDisplay === 'function' ? formatCafeTimeForDisplay((typeof normalizeCafeTimeValue === 'function' ? normalizeCafeTimeValue(localStorage.getItem('cafeOpenTime'), '14:00') : (localStorage.getItem('cafeOpenTime') || '14:00')), (localStorage.getItem('selectedLang') || 'ku')) : (localStorage.getItem('cafeOpenTime') || '2:00 PM')) + '" placeholder="' + (S.cafeOpenTimePlaceholder || '2:00 PM') + '">' +
                       '</div>' +
                       '<div class="settings-hours-input">' +
                           '<label for="cafeCloseTime">' + S.cafeCloseTimeLabel + '</label>' +
-                          '<input type="text" id="cafeCloseTime" value="' + (typeof formatCafeTimeForDisplay === 'function' ? formatCafeTimeForDisplay((typeof normalizeCafeTimeValue === 'function' ? normalizeCafeTimeValue(localStorage.getItem('cafeCloseTime'), '02:00') : (localStorage.getItem('cafeCloseTime') || '02:00')), (localStorage.getItem('selectedLang') || 'ku')) : (localStorage.getItem('cafeCloseTime') || '2:00 AM')) + '" placeholder="2:00 AM">' +
+                          '<input type="text" id="cafeCloseTime" value="' + (typeof formatCafeTimeForDisplay === 'function' ? formatCafeTimeForDisplay((typeof normalizeCafeTimeValue === 'function' ? normalizeCafeTimeValue(localStorage.getItem('cafeCloseTime'), '02:00') : (localStorage.getItem('cafeCloseTime') || '02:00')), (localStorage.getItem('selectedLang') || 'ku')) : (localStorage.getItem('cafeCloseTime') || '2:00 AM')) + '" placeholder="' + (S.cafeCloseTimePlaceholder || '2:00 AM') + '">' +
                       '</div>' +
                   '</div>' +
               '</div>' +
