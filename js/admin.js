@@ -3995,6 +3995,7 @@ function applyCafeTimePicker(prefix, lang) {
         btn.setAttribute('aria-expanded', 'false');
         btn.classList.remove('is-open');
     }
+    schedulePersistCafeHours();
 }
 
 function syncCafeTimePickerFromStorage(prefix, lang) {
@@ -4088,14 +4089,21 @@ function setupCafeTimePickers(lang) {
     }
 }
 
-function saveCafeHoursOnly() {
+var cafeHoursSaveTimer = null;
+
+function persistCafeHoursToCloud(showAlert) {
     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
     var lang = localStorage.getItem('selectedLang') || 'ku';
-    applyCafeTimePicker('cafeOpen', lang);
-    applyCafeTimePicker('cafeClose', lang);
-
-    var cafeOpenTime = readCafeTimePickerValue('cafeOpen') || '14:00';
-    var cafeCloseTime = readCafeTimePickerValue('cafeClose') || '02:00';
+    var cafeOpenTime = readCafeTimePickerValue('cafeOpen');
+    var cafeCloseTime = readCafeTimePickerValue('cafeClose');
+    if (!cafeOpenTime) {
+        var openHidden = document.getElementById('cafeOpenTime');
+        cafeOpenTime = openHidden ? openHidden.value : '14:00';
+    }
+    if (!cafeCloseTime) {
+        var closeHidden = document.getElementById('cafeCloseTime');
+        cafeCloseTime = closeHidden ? closeHidden.value : '02:00';
+    }
     if (typeof normalizeCafeTimeValue === 'function') {
         cafeOpenTime = normalizeCafeTimeValue(cafeOpenTime, '14:00');
         cafeCloseTime = normalizeCafeTimeValue(cafeCloseTime, '02:00');
@@ -4104,10 +4112,10 @@ function saveCafeHoursOnly() {
     localStorage.setItem('cafeOpenTime', cafeOpenTime);
     localStorage.setItem('cafeCloseTime', cafeCloseTime);
 
-    var openHidden = document.getElementById('cafeOpenTime');
-    var closeHidden = document.getElementById('cafeCloseTime');
-    if (openHidden) openHidden.value = cafeOpenTime;
-    if (closeHidden) closeHidden.value = cafeCloseTime;
+    var openEl = document.getElementById('cafeOpenTime');
+    var closeEl = document.getElementById('cafeCloseTime');
+    if (openEl) openEl.value = cafeOpenTime;
+    if (closeEl) closeEl.value = cafeCloseTime;
     updateCafeTimePickerDisplay('cafeOpen', lang);
     updateCafeTimePickerDisplay('cafeClose', lang);
 
@@ -4116,11 +4124,26 @@ function saveCafeHoursOnly() {
             cafeOpenTime: cafeOpenTime,
             cafeCloseTime: cafeCloseTime
         }, function (err) {
-            alert(err ? (S.saveHours + ' (local only)') : S.hoursSaved);
+            if (showAlert) {
+                alert(err ? (S.saveHours + ' (local only)') : S.hoursSaved);
+            }
         });
-    } else {
+    } else if (showAlert) {
         alert(S.hoursSaved);
     }
+}
+
+function schedulePersistCafeHours() {
+    if (cafeHoursSaveTimer) clearTimeout(cafeHoursSaveTimer);
+    cafeHoursSaveTimer = setTimeout(function () {
+        persistCafeHoursToCloud(false);
+    }, 500);
+}
+
+function saveCafeHoursOnly() {
+    applyCafeTimePicker('cafeOpen', localStorage.getItem('selectedLang') || 'ku');
+    applyCafeTimePicker('cafeClose', localStorage.getItem('selectedLang') || 'ku');
+    persistCafeHoursToCloud(true);
 }
 
 function loadSettings() {

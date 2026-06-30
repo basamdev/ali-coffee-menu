@@ -463,9 +463,9 @@
     gap: 10px;
     padding: 12px 14px;
     border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-card);
+    color: var(--text-primary);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -507,8 +507,8 @@
     margin-top: 10px;
     padding: 12px;
     border-radius: 14px;
-    border: 1px solid var(--border);
-    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-card-hover);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
@@ -540,13 +540,36 @@
     min-width: 0;
     padding: 11px 10px;
     border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 0.95rem;
     font-family: inherit;
     appearance: auto;
     -webkit-appearance: menulist;
+    color-scheme: dark;
+}
+
+.cafe-time-select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+}
+
+.cafe-time-select option {
+    background: #1a1f2e;
+    color: #ffffff;
+}
+
+body.light-mode .cafe-time-select {
+    background: #ffffff;
+    color: #1a1a1a;
+    color-scheme: light;
+}
+
+body.light-mode .cafe-time-select option {
+    background: #ffffff;
+    color: #1a1a1a;
 }
 
 .cafe-time-period {
