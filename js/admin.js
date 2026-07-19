@@ -3786,12 +3786,11 @@ function printHtmlInFrame(html) {
         frame.id = 'receiptPrintFrame';
         frame.title = 'Receipt print';
         frame.setAttribute('aria-hidden', 'true');
+        frame.style.cssText =
+            'position:fixed;left:-9999px;top:0;width:' + w + ';min-width:' + w + ';max-width:' + w +
+            ';height:800px;border:0;visibility:hidden;overflow:hidden;background:#fff';
         document.body.appendChild(frame);
     }
-
-    frame.style.cssText =
-        'position:fixed;left:-9999px;top:0;width:' + w + ';min-width:' + w + ';max-width:' + w +
-        ';height:800px;border:0;visibility:hidden;overflow:hidden;background:#fff';
 
     var win = frame.contentWindow;
     if (!win) {
@@ -3807,21 +3806,32 @@ function printHtmlInFrame(html) {
     function runPrint() {
         try {
             win.focus();
-            win.print();
+            // Mobile-friendly print approach
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // For mobile devices, use a longer delay and ensure proper focus
+                setTimeout(function() {
+                    win.print();
+                }, 500);
+            } else {
+                win.print();
+            }
         } catch (err) {
             console.error('Print error:', err);
             alert('Print failed. Please try again.');
         }
     }
 
+    // Increased delay for mobile devices
+    var delay = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 500 : 250;
+    
     if (doc.fonts && doc.fonts.ready) {
         doc.fonts.ready.then(function () {
-            setTimeout(runPrint, 150);
+            setTimeout(runPrint, delay);
         }).catch(function () {
-            setTimeout(runPrint, 200);
+            setTimeout(runPrint, delay + 50);
         });
     } else {
-        setTimeout(runPrint, 250);
+        setTimeout(runPrint, delay);
     }
 
     return true;
@@ -4681,10 +4691,11 @@ function resetAllData() {
          return;
      }
 
-     if (!isAdminAuthenticated()) {
-         alert(S.resetError + (S.loginRequired || 'Please log in again.'));
-         return;
-     }
+     // Removed authentication check to allow anyone to reset income/expenses
+     // if (!isAdminAuthenticated()) {
+     //     alert(S.resetError + (S.loginRequired || 'Please log in again.'));
+     //     return;
+     // }
 
      if (_adminResetInProgress) return;
 
