@@ -3,6 +3,79 @@
    Premium POS Dashboard
    ======================================== */
 
+/* Dashboard Filters */
+.dashboard-filters {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    min-width: 150px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-group select:hover,
+.filter-group input:hover {
+    border-color: var(--border-strong);
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+}
+
+.custom-dates {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.custom-dates input {
+    min-width: 140px;
+}
+
+.custom-dates button {
+    padding: 10px 16px;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius-sm);
+    background: var(--gold-glow);
+    color: var(--gold);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.custom-dates button:hover {
+    background: var(--gold);
+    color: var(--bg-primary);
+}
+
 :root {
     --bg-primary: #111111;
     --bg-secondary: #1A1A1A;

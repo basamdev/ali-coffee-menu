@@ -1273,21 +1273,58 @@ function loadDashboard() {
         monthsHtml += '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + (m + 1) + ' — ' + S[mNames[m]] + ' ' + now.getFullYear() + '</option>';
     }
     adminContent.innerHTML =
-        '<div class="month-selector">' +
-            '<label>' + S.selectMonth + '</label>' +
-            '<select id="dashboardMonthSelect">' + monthsHtml + '</select>' +
+        '<div class="dashboard-filters">' +
+            '<div class="filter-group">' +
+                '<label>' + S.selectMonth + '</label>' +
+                '<select id="dashboardMonthSelect">' + monthsHtml + '</select>' +
+            '</div>' +
+            '<div class="filter-group">' +
+                '<label>Date Filter</label>' +
+                '<select id="dashboardDateFilter">' +
+                    '<option value="today">Today</option>' +
+                    '<option value="yesterday">Yesterday</option>' +
+                    '<option value="week" selected>This Week</option>' +
+                    '<option value="month">This Month</option>' +
+                    '<option value="year">This Year</option>' +
+                    '<option value="all">All Time</option>' +
+                    '<option value="custom">Custom Range</option>' +
+                '</select>' +
+            '</div>' +
+            '<div class="filter-group custom-dates" id="customDateGroup" style="display:none;">' +
+                '<input type="date" id="customStartDate" />' +
+                '<input type="date" id="customEndDate" />' +
+                '<button id="applyCustomFilter">Apply</button>' +
+            '</div>' +
         '</div>' +
         '<div class="admin-stats">' +
-            '<div class="stat-card stat-card--income"><h3>' + S.todaySales + '</h3><div class="stat-value" id="todaySales">0 IQD</div></div>' +
-            '<div class="stat-card stat-card--expense"><h3>' + S.todayExpenses + '</h3><div class="stat-value" id="todayExpenses">0 IQD</div></div>' +
-            '<div class="stat-card stat-card--net"><h3>' + S.netIncome + '</h3><div class="stat-value" id="todayNet">0 IQD</div></div>' +
-            '<div class="stat-card"><h3>' + S.todayOrders + '</h3><div class="stat-value" id="todayOrders">0</div></div>' +
+            '<div class="stat-card stat-card--income"><h3>Sales</h3><div class="stat-value" id="filteredSales">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--expense"><h3>Expenses</h3><div class="stat-value" id="filteredExpenses">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--net"><h3>Net Profit</h3><div class="stat-value" id="filteredNet">0 IQD</div></div>' +
+            '<div class="stat-card"><h3>Orders</h3><div class="stat-value" id="filteredOrders">0</div></div>' +
         '</div>' +
         '<div class="admin-stats" style="margin-top:16px;">' +
-            '<div class="stat-card stat-card--income"><h3>' + S.monthlySales + '</h3><div class="stat-value" id="monthlySales">0 IQD</div></div>' +
-            '<div class="stat-card stat-card--expense"><h3>' + S.monthlyExpenses + '</h3><div class="stat-value" id="monthlyExpenses">0 IQD</div></div>' +
-            '<div class="stat-card stat-card--net"><h3>' + S.netIncome + '</h3><div class="stat-value" id="monthlyNet">0 IQD</div></div>' +
-            '<div class="stat-card"><h3>' + S.bestSelling + '</h3><div class="stat-value" id="bestSelling">-</div></div>' +
+            '<div class="stat-card stat-card--income"><h3>Today Sales</h3><div class="stat-value" id="todaySales">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--expense"><h3>Today Expenses</h3><div class="stat-value" id="todayExpenses">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--net"><h3>Today Net</h3><div class="stat-value" id="todayNet">0 IQD</div></div>' +
+            '<div class="stat-card"><h3>Today Orders</h3><div class="stat-value" id="todayOrders">0</div></div>' +
+        '</div>' +
+        '<div class="admin-stats" style="margin-top:16px;">' +
+            '<div class="stat-card stat-card--income"><h3>Week Sales</h3><div class="stat-value" id="weekSales">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--expense"><h3>Week Expenses</h3><div class="stat-value" id="weekExpenses">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--net"><h3>Week Net</h3><div class="stat-value" id="weekNet">0 IQD</div></div>' +
+            '<div class="stat-card"><h3>Week Orders</h3><div class="stat-value" id="weekOrders">0</div></div>' +
+        '</div>' +
+        '<div class="admin-stats" style="margin-top:16px;">' +
+            '<div class="stat-card stat-card--income"><h3>Month Sales</h3><div class="stat-value" id="monthlySales">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--expense"><h3>Month Expenses</h3><div class="stat-value" id="monthlyExpenses">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--net"><h3>Month Net</h3><div class="stat-value" id="monthlyNet">0 IQD</div></div>' +
+            '<div class="stat-card"><h3>Best Selling</h3><div class="stat-value" id="bestSelling">-</div></div>' +
+        '</div>' +
+        '<div class="admin-stats" style="margin-top:16px;">' +
+            '<div class="stat-card stat-card--income"><h3>Total Sales</h3><div class="stat-value" id="totalSales">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--expense"><h3>Total Expenses</h3><div class="stat-value" id="totalExpenses">0 IQD</div></div>' +
+            '<div class="stat-card stat-card--net"><h3>Total Net</h3><div class="stat-value" id="totalNet">0 IQD</div></div>' +
+            '<div class="stat-card"><h3>Total Orders</h3><div class="stat-value" id="totalOrders">0</div></div>' +
         '</div>' +
         '<div class="card">' +
             '<h2>' + S.dailySales + ' — <span id="dailySalesMonthLabel"></span></h2>' +
@@ -1297,12 +1334,34 @@ function loadDashboard() {
             '<h2>' + S.recentSales + '</h2>' +
             '<div id="recentSalesContainer"></div>' +
         '</div>';
+    
     var monthSelect = document.getElementById('dashboardMonthSelect');
     if (monthSelect) {
         monthSelect.addEventListener('change', function () {
             renderDashboardUI(parseInt(this.value, 10));
         });
     }
+    
+    var dateFilter = document.getElementById('dashboardDateFilter');
+    if (dateFilter) {
+        dateFilter.addEventListener('change', function () {
+            var customGroup = document.getElementById('customDateGroup');
+            if (this.value === 'custom') {
+                customGroup.style.display = 'flex';
+            } else {
+                customGroup.style.display = 'none';
+                renderDashboardUI(currentMonth);
+            }
+        });
+    }
+    
+    var applyCustomBtn = document.getElementById('applyCustomFilter');
+    if (applyCustomBtn) {
+        applyCustomBtn.addEventListener('click', function () {
+            renderDashboardUI(currentMonth);
+        });
+    }
+    
     renderDashboardUI(currentMonth);
     renderRecentSalesUI();
     startAdminLiveListeners();
@@ -1317,53 +1376,132 @@ function renderDashboardUI(month) {
     var year = new Date().getFullYear();
     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
 
+    var now = new Date();
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    var yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    var weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    
     var mStart = new Date(year, month, 1);
     var mEnd = new Date(year, month + 1, 1);
+    var yearStart = new Date(year, 0, 1);
+    var yearEnd = new Date(year + 1, 0, 1);
+    
     var startMs = mStart.getTime();
     var endMs = mEnd.getTime();
     var todayMs = today.getTime();
     var tomorrowMs = tomorrow.getTime();
+    var yesterdayMs = yesterday.getTime();
+    var yesterdayTomorrowMs = todayMs;
+    var weekStartMs = weekStart.getTime();
+    var weekEndMs = weekEnd.getTime();
+    var yearStartMs = yearStart.getTime();
+    var yearEndMs = yearEnd.getTime();
 
-    var sales = readCachedSales();
-    var expenses = readCachedExpenses();
+    var sales = getSalesDataSource();
+    var expenses = getExpensesDataSource();
     var lang = localStorage.getItem('selectedLang') || 'ku';
 
     var todaySalesTotal = 0;
     var todayOrderCount = 0;
-    var monthlyTotal = 0;
-    var monthExpTotal = 0;
     var todayExpTotal = 0;
+    
+    var yesterdaySalesTotal = 0;
+    var yesterdayOrderCount = 0;
+    var yesterdayExpTotal = 0;
+    
+    var weekSalesTotal = 0;
+    var weekOrderCount = 0;
+    var weekExpTotal = 0;
+    
+    var monthlyTotal = 0;
+    var monthOrderCount = 0;
+    var monthExpTotal = 0;
+    
+    var yearSalesTotal = 0;
+    var yearOrderCount = 0;
+    var yearExpTotal = 0;
+    
+    var totalSales = 0;
+    var totalOrders = 0;
+    var totalExpenses = 0;
+    
     var dayTotals = {};
     var itemCounts = {};
+    var weekItemCounts = {};
+    var monthItemCounts = {};
+    var totalItemCounts = {};
 
     sales.forEach(function (s) {
         var ms = saleTimestampToMs(s);
+        var total = s.total || 0;
+        
         if (ms >= todayMs && ms < tomorrowMs) {
-            todaySalesTotal += s.total || 0;
+            todaySalesTotal += total;
             todayOrderCount++;
         }
+        
+        if (ms >= yesterdayMs && ms < yesterdayTomorrowMs) {
+            yesterdaySalesTotal += total;
+            yesterdayOrderCount++;
+        }
+        
+        if (ms >= weekStartMs && ms < weekEndMs) {
+            weekSalesTotal += total;
+            weekOrderCount++;
+        }
+        
         if (ms >= startMs && ms < endMs) {
-            monthlyTotal += s.total || 0;
+            monthlyTotal += total;
+            monthOrderCount++;
             var dayKey = new Date(ms).getDate();
-            dayTotals[dayKey] = (dayTotals[dayKey] || 0) + (s.total || 0);
-            if (s.items) {
-                s.items.forEach(function (it) {
-                    var itemName = it.name || it['name_' + lang] || it.name_en || '—';
-                    var qty = it.quantity || 1;
-                    if (!itemCounts[itemName]) itemCounts[itemName] = 0;
-                    itemCounts[itemName] += qty;
-                });
-            }
+            dayTotals[dayKey] = (dayTotals[dayKey] || 0) + total;
+        }
+        
+        if (ms >= yearStartMs && ms < yearEndMs) {
+            yearSalesTotal += total;
+            yearOrderCount++;
+        }
+        
+        totalSales += total;
+        totalOrders++;
+        
+        if (s.items) {
+            s.items.forEach(function (it) {
+                var itemName = it.name || it['name_' + lang] || it.name_en || '—';
+                var qty = it.quantity || 1;
+                
+                if (!itemCounts[itemName]) itemCounts[itemName] = 0;
+                if (!weekItemCounts[itemName]) weekItemCounts[itemName] = 0;
+                if (!monthItemCounts[itemName]) monthItemCounts[itemName] = 0;
+                if (!totalItemCounts[itemName]) totalItemCounts[itemName] = 0;
+                
+                itemCounts[itemName] += qty;
+                weekItemCounts[itemName] += qty;
+                monthItemCounts[itemName] += qty;
+                totalItemCounts[itemName] += qty;
+            });
         }
     });
 
     expenses.forEach(function (e) {
-        if (isExpenseOnLocalDay(e, today)) todayExpTotal += e.price || 0;
-        if (isExpenseInMonth(e, month, year)) monthExpTotal += e.price || 0;
+        var ms = expenseTimestampToMs(e);
+        var price = e.price || 0;
+        
+        if (isExpenseOnLocalDay(e, today)) todayExpTotal += price;
+        if (isExpenseOnLocalDay(e, yesterday)) yesterdayExpTotal += price;
+        if (ms >= weekStartMs && ms < weekEndMs) weekExpTotal += price;
+        if (isExpenseInMonth(e, month, year)) monthExpTotal += price;
+        if (ms >= yearStartMs && ms < yearEndMs) yearExpTotal += price;
+        totalExpenses += price;
     });
 
     var labelEl = document.getElementById('dailySalesMonthLabel');
@@ -1371,23 +1509,42 @@ function renderDashboardUI(month) {
 
     var elToday = document.getElementById('todaySales');
     if (elToday) elToday.textContent = todaySalesTotal.toLocaleString() + ' IQD';
-    var elOrders = document.getElementById('todayOrders');
-    if (elOrders) elOrders.textContent = todayOrderCount.toString();
+    var elTodayOrders = document.getElementById('todayOrders');
+    if (elTodayOrders) elTodayOrders.textContent = todayOrderCount.toString();
     var elTodayExp = document.getElementById('todayExpenses');
     if (elTodayExp) elTodayExp.textContent = todayExpTotal.toLocaleString() + ' IQD';
     var elTodayNet = document.getElementById('todayNet');
     if (elTodayNet) elTodayNet.textContent = (todaySalesTotal - todayExpTotal).toLocaleString() + ' IQD';
+    
+    var elWeekSales = document.getElementById('weekSales');
+    if (elWeekSales) elWeekSales.textContent = weekSalesTotal.toLocaleString() + ' IQD';
+    var elWeekOrders = document.getElementById('weekOrders');
+    if (elWeekOrders) elWeekOrders.textContent = weekOrderCount.toString();
+    var elWeekExp = document.getElementById('weekExpenses');
+    if (elWeekExp) elWeekExp.textContent = weekExpTotal.toLocaleString() + ' IQD';
+    var elWeekNet = document.getElementById('weekNet');
+    if (elWeekNet) elWeekNet.textContent = (weekSalesTotal - weekExpTotal).toLocaleString() + ' IQD';
+    
     var elM = document.getElementById('monthlySales');
     if (elM) elM.textContent = monthlyTotal.toLocaleString() + ' IQD';
     var elMExp = document.getElementById('monthlyExpenses');
     if (elMExp) elMExp.textContent = monthExpTotal.toLocaleString() + ' IQD';
     var elMNet = document.getElementById('monthlyNet');
     if (elMNet) elMNet.textContent = (monthlyTotal - monthExpTotal).toLocaleString() + ' IQD';
+    
+    var elTotalSales = document.getElementById('totalSales');
+    if (elTotalSales) elTotalSales.textContent = totalSales.toLocaleString() + ' IQD';
+    var elTotalOrders = document.getElementById('totalOrders');
+    if (elTotalOrders) elTotalOrders.textContent = totalOrders.toString();
+    var elTotalExp = document.getElementById('totalExpenses');
+    if (elTotalExp) elTotalExp.textContent = totalExpenses.toLocaleString() + ' IQD';
+    var elTotalNet = document.getElementById('totalNet');
+    if (elTotalNet) elTotalNet.textContent = (totalSales - totalExpenses).toLocaleString() + ' IQD';
 
     var bestName = '-';
     var bestQty = 0;
-    Object.keys(itemCounts).forEach(function (name) {
-        if (itemCounts[name] > bestQty) { bestQty = itemCounts[name]; bestName = name; }
+    Object.keys(monthItemCounts).forEach(function (name) {
+        if (monthItemCounts[name] > bestQty) { bestQty = monthItemCounts[name]; bestName = name; }
     });
     var elB = document.getElementById('bestSelling');
     if (elB) {
@@ -1409,6 +1566,107 @@ function renderDashboardUI(month) {
     html += '</tbody></table>';
     var container = document.getElementById('dailySalesContainer');
     if (container) container.innerHTML = html;
+    
+    applyDateFilter(sales, expenses, lang, S);
+}
+
+function expenseTimestampToMs(e) {
+    if (!e) return 0;
+    var sec = deriveExpenseTimestampSeconds(e);
+    return sec != null ? sec * 1000 : 0;
+}
+
+function applyDateFilter(sales, expenses, lang, S) {
+    var dateFilter = document.getElementById('dashboardDateFilter');
+    if (!dateFilter) return;
+    
+    var filterType = dateFilter.value;
+    var now = new Date();
+    var startMs, endMs;
+    
+    switch (filterType) {
+        case 'today':
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            var tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            startMs = today.getTime();
+            endMs = tomorrow.getTime();
+            break;
+        case 'yesterday':
+            var yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            yesterday.setHours(0, 0, 0, 0);
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            startMs = yesterday.getTime();
+            endMs = today.getTime();
+            break;
+        case 'week':
+            var weekStart = new Date();
+            weekStart.setDate(now.getDate() - now.getDay());
+            weekStart.setHours(0, 0, 0, 0);
+            var weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 7);
+            startMs = weekStart.getTime();
+            endMs = weekEnd.getTime();
+            break;
+        case 'month':
+            var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            startMs = monthStart.getTime();
+            endMs = monthEnd.getTime();
+            break;
+        case 'year':
+            var yearStart = new Date(now.getFullYear(), 0, 1);
+            var yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+            startMs = yearStart.getTime();
+            endMs = yearEnd.getTime();
+            break;
+        case 'custom':
+            var customStart = document.getElementById('customStartDate');
+            var customEnd = document.getElementById('customEndDate');
+            if (customStart && customEnd && customStart.value && customEnd.value) {
+                startMs = new Date(customStart.value).setHours(0, 0, 0, 0);
+                endMs = new Date(customEnd.value).setHours(23, 59, 59, 999);
+            } else {
+                return;
+            }
+            break;
+        case 'all':
+        default:
+            startMs = 0;
+            endMs = Date.now();
+            break;
+    }
+    
+    var filteredSales = 0;
+    var filteredOrders = 0;
+    var filteredExpenses = 0;
+    
+    sales.forEach(function (s) {
+        var ms = saleTimestampToMs(s);
+        if (ms >= startMs && ms < endMs) {
+            filteredSales += s.total || 0;
+            filteredOrders++;
+        }
+    });
+    
+    expenses.forEach(function (e) {
+        var ms = expenseTimestampToMs(e);
+        if (ms >= startMs && ms < endMs) {
+            filteredExpenses += e.price || 0;
+        }
+    });
+    
+    var elFilteredSales = document.getElementById('filteredSales');
+    if (elFilteredSales) elFilteredSales.textContent = filteredSales.toLocaleString() + ' IQD';
+    var elFilteredOrders = document.getElementById('filteredOrders');
+    if (elFilteredOrders) elFilteredOrders.textContent = filteredOrders.toString();
+    var elFilteredExp = document.getElementById('filteredExpenses');
+    if (elFilteredExp) elFilteredExp.textContent = filteredExpenses.toLocaleString() + ' IQD';
+    var elFilteredNet = document.getElementById('filteredNet');
+    if (elFilteredNet) elFilteredNet.textContent = (filteredSales - filteredExpenses).toLocaleString() + ' IQD';
 }
 
 function renderRecentSalesUI() {
