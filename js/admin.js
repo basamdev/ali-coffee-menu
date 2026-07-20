@@ -1228,13 +1228,6 @@ function getMonthName(monthIndex, strings) {
 }
 
 function loadDashboard() {
-    // Force refresh from server to ensure cross-device sync
-    syncAdminFinancialsFromServer(function() {
-        // After server sync, render dashboard with fresh data
-        renderDashboardUI(currentMonth);
-        renderRecentSalesUI();
-    });
-    
     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
     var adminContent = document.getElementById('adminContent');
     var now = new Date();
@@ -1306,14 +1299,14 @@ function loadDashboard() {
             '<h2>' + S.recentSales + '</h2>' +
             '<div id="recentSalesContainer"></div>' +
         '</div>';
-    
+
     var monthSelect = document.getElementById('dashboardMonthSelect');
     if (monthSelect) {
         monthSelect.addEventListener('change', function () {
             renderDashboardUI(parseInt(this.value, 10));
         });
     }
-    
+
     var dateFilter = document.getElementById('dashboardDateFilter');
     if (dateFilter) {
         dateFilter.addEventListener('change', function () {
@@ -1326,14 +1319,14 @@ function loadDashboard() {
             }
         });
     }
-    
+
     var applyCustomBtn = document.getElementById('applyCustomFilter');
     if (applyCustomBtn) {
         applyCustomBtn.addEventListener('click', function () {
             renderDashboardUI(currentMonth);
         });
     }
-    
+
     renderDashboardUI(currentMonth);
     renderRecentSalesUI();
     startAdminLiveListeners();
@@ -4751,6 +4744,165 @@ function resetAllData() {
          });
      });
  }
+
+/* ============ EXPENSES ============ */
+
+function loadExpenses() {
+    syncAdminFinancialsFromServer(function() {
+        renderExpensesUI(getExpensesMonth());
+    });
+    
+    var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
+    var adminContent = document.getElementById('adminContent');
+    var now = new Date();
+    var currentMonth = now.getMonth();
+    var monthsHtml = '';
+    var mNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    for (var m = 0; m < 12; m++) {
+        monthsHtml += '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + (m + 1) + ' — ' + S[mNames[m]] + ' ' + now.getFullYear() + '</option>';
+    }
+
+    adminContent.innerHTML =
+        '<div class="expenses-page">' +
+            '<div class="expenses-header">' +
+                '<div class="expenses-header-title">' +
+                    '<h2>📉 ' + S.expenses + '</h2>' +
+                '</div>' +
+                '<div class="expenses-header-actions">' +
+                    '<div class="month-selector">' +
+                        '<select id="expensesMonthSelect">' + monthsHtml + '</select>' +
+                    '</div>' +
+                    '<button class="btn-primary" id="addExpenseBtn">+ ' + S.addExpense + '</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="expenses-stats">' +
+                '<div class="expense-stat-card expense-stat--today">' +
+                    '<div class="expense-stat-icon">📅</div>' +
+                    '<div class="expense-stat-info">' +
+                        '<span class="expense-stat-label">' + S.todayExpenses + '</span>' +
+                        '<span class="expense-stat-value" id="expTodayTotal">0 IQD</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="expense-stat-card expense-stat--month">' +
+                    '<div class="expense-stat-icon">📊</div>' +
+                    '<div class="expense-stat-info">' +
+                        '<span class="expense-stat-label">' + S.monthlyExpenses + '</span>' +
+                        '<span class="expense-stat-value" id="expMonthTotal">0 IQD</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="expense-stat-card expense-stat--count">' +
+                    '<div class="expense-stat-icon">📋</div>' +
+                    '<div class="expense-stat-info">' +
+                        '<span class="expense-stat-label">' + S.total + '</span>' +
+                        '<span class="expense-stat-value" id="expCount">0</span>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="expenses-table-container">' +
+                '<div id="expensesList"></div>' +
+            '</div>' +
+        '</div>' +
+        '<div id="expenseModal" class="modal-overlay">' +
+            '<div class="modal expense-modal">' +
+                '<div class="modal-content">' +
+                    '<span class="modal-close" id="expenseModalClose">&times;</span>' +
+                    '<h2 id="expenseModalTitle">' + S.addExpense + '</h2>' +
+                    '<form id="expenseForm" novalidate>' +
+                        '<div class="form-group">' +
+                            '<label>' + S.expenseName + '</label>' +
+                            '<input type="text" id="expenseName" list="expenseSuggestions" autocomplete="off">' +
+                            '<datalist id="expenseSuggestions">' +
+                                '<option value="' + S.water + '">' +
+                                '<option value="' + S.milk + '">' +
+                                '<option value="' + S.coffee + '">' +
+                                '<option value="' + S.electric + '">' +
+                                '<option value="' + S.gas + '">' +
+                                '<option value="' + S.rent + '">' +
+                                '<option value="' + S.salary + '">' +
+                                '<option value="' + S.other + '">' +
+                            '</datalist>' +
+                        '</div>' +
+                        '<div class="form-row">' +
+                            '<div class="form-group">' +
+                                '<label>' + S.expensePrice + '</label>' +
+                                '<input type="text" inputmode="decimal" id="expensePrice" min="0" autocomplete="off">' +
+                            '</div>' +
+                            '<div class="form-group">' +
+                                '<label>' + S.expenseDate + '</label>' +
+                                '<input type="date" id="expenseDate">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="form-group">' +
+                            '<label>' + S.expenseTime + '</label>' +
+                            '<input type="time" id="expenseTime">' +
+                        '</div>' +
+                        '<button type="button" class="btn-primary" id="saveExpenseBtn">' + S.saveItem + '</button>' +
+                        '<button type="button" class="btn-secondary" id="cancelExpenseBtn" style="margin-left:8px;">' + S.cancel + '</button>' +
+                        '<input type="hidden" id="expenseId" value="">' +
+                    '</form>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+    var monthSelect = document.getElementById('expensesMonthSelect');
+    if (monthSelect) {
+        monthSelect.addEventListener('change', function () {
+            renderExpensesUI(parseInt(this.value, 10));
+        });
+    }
+
+    var addBtn = document.getElementById('addExpenseBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', function () {
+            document.getElementById('expenseModalTitle').textContent = S.addExpense;
+            document.getElementById('expenseForm').reset();
+            document.getElementById('expenseId').value = '';
+            var today = getLocalDateKey(new Date());
+            var now = new Date().toTimeString().slice(0, 5);
+            document.getElementById('expenseDate').value = today;
+            document.getElementById('expenseTime').value = now;
+            document.getElementById('expenseModal').classList.add('active');
+        });
+    }
+
+    var closeBtn = document.getElementById('expenseModalClose');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            document.getElementById('expenseModal').classList.remove('active');
+        });
+    }
+
+    var cancelBtn = document.getElementById('cancelExpenseBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+            document.getElementById('expenseModal').classList.remove('active');
+        });
+    }
+
+    var form = document.getElementById('expenseForm');
+    function triggerSaveExpense() {
+        try { saveExpense(); } catch (err) {
+            console.error('saveExpense error:', err);
+            alert(S.itemSyncFailed + (err && err.message ? '\n' + err.message : ''));
+        }
+    }
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            triggerSaveExpense();
+        });
+    }
+    var saveExpenseBtn = document.getElementById('saveExpenseBtn');
+    if (saveExpenseBtn) {
+        saveExpenseBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            triggerSaveExpense();
+        });
+    }
+
+    renderExpensesUI(currentMonth);
+    startAdminLiveListeners();
+}
 
 /* ============ LOGOUT ============ */
 
