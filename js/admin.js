@@ -8,8 +8,8 @@ let categoriesUnsubscribe = null;
 let itemsUnsubscribe = null;
 var dashboardUnsubscribes = [];
 var _itemsSnapDocs = [];
-var _adminSalesLive = null;
-var _adminExpensesLive = null;
+var _adminSalesLive = [];
+var _adminExpensesLive = [];
 var _adminLiveListenersStarted = false;
 var _adminResetInProgress = false;
 let itemsActiveCategory = 'all';
@@ -105,25 +105,12 @@ function removeCachedMenuItem(id) {
     _itemsSnapDocs = getItemDocsFromLocalCache();
 }
 
-/* ============ SALES CACHE (offline dashboard + cashier) ============ */
+/* ============ SALES DATA (live from Firestore) ============ */
 
-function readCachedSales() {
-    try {
-        return JSON.parse(localStorage.getItem('cachedSales') || '[]');
-    } catch (e) {
-        return [];
-    }
-}
+var _adminSalesLive = [];
 
-function writeCachedSales(items) {
-    try {
-        localStorage.setItem('cachedSales', JSON.stringify(items));
-        syncSalesLiveFromCache();
-    } catch (e) {}
-}
-
-function syncSalesLiveFromCache() {
-    _adminSalesLive = readCachedSales().slice();
+function getCachedSales() {
+    return _adminSalesLive.slice();
 }
 
 function saleTimestampToMs(item) {
@@ -154,33 +141,17 @@ function saleEntryFromDoc(doc) {
     };
 }
 
-function upsertCachedSale(entry) {
-    var items = readCachedSales();
-    var idx = -1;
-    for (var i = 0; i < items.length; i++) {
-        if (items[i].id === entry.id) { idx = i; break; }
-    }
-    if (idx >= 0) items[idx] = entry;
-    else items.push(entry);
-    writeCachedSales(items);
-}
-
-function removeCachedSale(id) {
-    writeCachedSales(readCachedSales().filter(function (s) { return s.id !== id; }));
-}
-
-function mergeSalesSnapIntoCache(snap) {
-    if (!snap || snap.empty) return;
-    var all = readCachedSales();
-    snap.forEach(function (doc) {
-        var entry = saleEntryFromDoc(doc);
-        var found = false;
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].id === entry.id) { all[i] = entry; found = true; break; }
-        }
-        if (!found) all.push(entry);
+function mergeSalesSnap(snapshot) {
+    if (_adminResetInProgress) return;
+    var sales = [];
+    snapshot.forEach(function (doc) {
+        sales.push(saleEntryFromDoc(doc));
     });
-    writeCachedSales(all);
+    sales.sort(function (a, b) {
+        return (b.timestampSeconds || 0) - (a.timestampSeconds || 0);
+    });
+    _adminSalesLive = sales;
+    refreshDashboardUI(getDashboardMonth());
 }
 
 function sumSalesInRange(start, end) {
@@ -188,7 +159,7 @@ function sumSalesInRange(start, end) {
     var count = 0;
     var startMs = start.getTime();
     var endMs = end.getTime();
-    readCachedSales().forEach(function (s) {
+    _adminSalesLive.forEach(function (s) {
         var ms = saleTimestampToMs(s);
         if (ms >= startMs && ms < endMs) {
             total += s.total || 0;
@@ -203,7 +174,7 @@ function sumExpensesInRange(start, end) {
     var startMs = start.getTime();
     var endMs = end.getTime();
     var isSingleDay = endMs - startMs <= 90000000;
-    readCachedExpenses().forEach(function (e) {
+    _adminExpensesLive.forEach(function (e) {
         if (isSingleDay && isExpenseOnLocalDay(e, start)) {
             total += e.price || 0;
             return;
@@ -268,38 +239,26 @@ function getExpensesMonth() {
 }
 
 function getSalesDataSource() {
-    var cached = readCachedSales();
-    if (_adminSalesLive !== null && _adminSalesLive.length) return _adminSalesLive;
-    return cached;
+    return getCachedSales();
 }
 
-function syncExpensesLiveFromCache() {
-    _adminExpensesLive = readCachedExpenses().slice();
-}
+var _adminExpensesLive = [];
 
-function mergeServerExpensesIntoCache(snap) {
-    if (_adminResetInProgress) return readCachedExpenses();
-    var fromServer = [];
-    if (snap && !snap.empty) {
-        snap.forEach(function (d) {
-            fromServer.push(expenseEntryFromDoc(d));
-        });
-    }
-    var serverIds = {};
-    fromServer.forEach(function (e) { serverIds[e.id] = true; });
-    var pending = readCachedExpenses().filter(function (e) {
-        return String(e.id).indexOf('local-') === 0 && !serverIds[e.id];
+function mergeExpensesSnap(snapshot) {
+    if (_adminResetInProgress) return;
+    var expenses = [];
+    snapshot.forEach(function (doc) {
+        expenses.push(expenseEntryFromDoc(doc));
     });
-    var merged = fromServer.concat(pending).map(normalizeExpenseEntry);
-    _adminExpensesLive = merged;
-    writeCachedExpenses(merged);
-    return merged;
+    expenses.sort(function (a, b) {
+        return (b.timestampSeconds || 0) - (a.timestampSeconds || 0);
+    });
+    _adminExpensesLive = expenses;
+    refreshDashboardUI(getDashboardMonth());
 }
 
 function getExpensesDataSource() {
-    var cached = readCachedExpenses();
-    if (_adminExpensesLive !== null && _adminExpensesLive.length) return _adminExpensesLive;
-    return cached;
+    return _adminExpensesLive.slice();
 }
 
 function deriveExpenseTimestampSeconds(entry) {
@@ -369,65 +328,50 @@ function isExpenseInMonth(item, month, year) {
     return d.getFullYear() === year && d.getMonth() === month;
 }
 
-function mergeServerSalesIntoCache(snap) {
-    if (_adminResetInProgress) return readCachedSales();
-    var fromServer = [];
-    if (snap && !snap.empty) {
-        snap.forEach(function (d) {
-            fromServer.push(saleEntryFromDoc(d));
-        });
-    }
-    var serverIds = {};
-    fromServer.forEach(function (s) { serverIds[s.id] = true; });
-    var pending = readCachedSales().filter(function (s) {
-        return String(s.id).indexOf('local-') === 0 && !serverIds[s.id];
-    });
-    var merged = fromServer.concat(pending);
-    _adminSalesLive = merged;
-    writeCachedSales(merged);
-    return merged;
-}
-
 function mergeRestExpensesDocs(docs) {
-    if (_adminResetInProgress) return readCachedExpenses();
-    var fromServer = restDocsToExpenses(docs || []);
-    var serverIds = {};
-    fromServer.forEach(function (e) { serverIds[e.id] = true; });
-    var pending = readCachedExpenses().filter(function (e) {
-        return String(e.id).indexOf('local-') === 0 && !serverIds[e.id];
+    if (_adminResetInProgress) return;
+    var expenses = [];
+    (docs || []).forEach(function (d) {
+        expenses.push({
+            id: d.id,
+            name: d.data.name,
+            price: d.data.price || 0,
+            date: d.data.date,
+            time: d.data.time,
+            timestamp: d.data.timestamp,
+            timestampSeconds: d.data.timestampSeconds
+        });
     });
-    var merged = fromServer.concat(pending).map(normalizeExpenseEntry);
-    _adminExpensesLive = merged;
-    writeCachedExpenses(merged);
-    return merged;
+    expenses.sort(function (a, b) {
+        return (b.timestampSeconds || 0) - (a.timestampSeconds || 0);
+    });
+    _adminExpensesLive = expenses;
 }
 
 function mergeRestSalesDocs(docs) {
-    if (_adminResetInProgress) return readCachedSales();
-    var fromServer = restDocsToSales(docs || []);
-    var serverIds = {};
-    fromServer.forEach(function (s) { serverIds[s.id] = true; });
-    var pending = readCachedSales().filter(function (s) {
-        return String(s.id).indexOf('local-') === 0 && !serverIds[s.id];
+    if (_adminResetInProgress) return;
+    var sales = [];
+    (docs || []).forEach(function (d) {
+        sales.push({
+            id: d.id,
+            items: d.data.items || [],
+            total: d.data.total || 0,
+            timestampSeconds: d.data.timestampSeconds,
+            cashier: d.data.cashier
+        });
     });
-    var merged = fromServer.concat(pending);
-    _adminSalesLive = merged;
-    writeCachedSales(merged);
-    return merged;
+    sales.sort(function (a, b) {
+        return (b.timestampSeconds || 0) - (a.timestampSeconds || 0);
+    });
+    _adminSalesLive = sales;
 }
 
 function clearAdminSalesExpensesCache() {
     _adminSalesLive = [];
     _adminExpensesLive = [];
-    writeCachedSales([]);
-    writeCachedExpenses([]);
 }
 
 function hydrateAdminFromLocalCache() {
-    var sales = readCachedSales();
-    var expenses = readCachedExpenses();
-    if (sales.length > 0) _adminSalesLive = sales;
-    if (expenses.length > 0) _adminExpensesLive = expenses;
 }
 
 function isFirestoreCacheEmptySnap(snap) {
@@ -739,58 +683,48 @@ function restDocsToExpenses(docs) {
 
 function warmSalesCacheFromServer() {
     if (_adminResetInProgress) {
-        writeCachedSales([]);
+        _adminSalesLive = [];
         return Promise.resolve();
     }
-    if (isAdminAuthenticated() && navigator.onLine) {
-        return fetchAllAdminCollectionViaRest('sales').then(function (docs) {
-            mergeRestSalesDocs(docs || []);
-        }).catch(function () {
-            return salesCacheFromSdkServer();
+    return db.collection('sales').get({ source: 'server' }).then(function (snap) {
+        mergeSalesSnap(snap);
+    }).catch(function () {
+        return db.collection('sales').get().then(function (snap) {
+            mergeSalesSnap(snap);
         });
-    }
-    return salesCacheFromSdkServer();
+    });
 }
 
 function salesCacheFromSdkServer() {
     return db.collection('sales').get({ source: 'server' }).then(function (snap) {
-        var sales = [];
-        snap.forEach(function (d) { sales.push(saleEntryFromDoc(d)); });
-        writeCachedSales(sales);
+        mergeSalesSnap(snap);
     }).catch(function () {
         return db.collection('sales').get().then(function (snap) {
-            var sales = [];
-            snap.forEach(function (d) { sales.push(saleEntryFromDoc(d)); });
-            writeCachedSales(sales);
+            mergeSalesSnap(snap);
         });
     });
 }
 
 function warmExpensesCacheFromServer() {
     if (_adminResetInProgress) {
-        writeCachedExpenses([]);
+        _adminExpensesLive = [];
         return Promise.resolve();
     }
-    if (isAdminAuthenticated() && navigator.onLine) {
-        return fetchAllAdminCollectionViaRest('expenses').then(function (docs) {
-            mergeRestExpensesDocs(docs || []);
-        }).catch(function () {
-            return expensesCacheFromSdkServer();
+    return db.collection('expenses').get({ source: 'server' }).then(function (snap) {
+        mergeExpensesSnap(snap);
+    }).catch(function () {
+        return db.collection('expenses').get().then(function (snap) {
+            mergeExpensesSnap(snap);
         });
-    }
-    return expensesCacheFromSdkServer();
+    });
 }
 
 function expensesCacheFromSdkServer() {
     return db.collection('expenses').get({ source: 'server' }).then(function (snap) {
-        var expenses = [];
-        snap.forEach(function (d) { expenses.push(expenseEntryFromDoc(d)); });
-        writeCachedExpenses(expenses);
+        mergeExpensesSnap(snap);
     }).catch(function () {
         return db.collection('expenses').get().then(function (snap) {
-            var expenses = [];
-            snap.forEach(function (d) { expenses.push(expenseEntryFromDoc(d)); });
-            writeCachedExpenses(expenses);
+            mergeExpensesSnap(snap);
         });
     });
 }
@@ -812,7 +746,6 @@ function syncAdminFinancialsFromServer(callback) {
         return Promise.resolve();
     }
     
-    // Force fetch from server using SDK to ensure latest data
     return Promise.all([
         db.collection('sales').get({ source: 'server' }),
         db.collection('expenses').get({ source: 'server' })
@@ -822,26 +755,14 @@ function syncAdminFinancialsFromServer(callback) {
         
         console.log('[sync] Fetched sales:', salesSnap.size, 'expenses:', expensesSnap.size);
         
-        // Process sales
-        var sales = [];
-        salesSnap.forEach(function (d) { sales.push(saleEntryFromDoc(d)); });
-        writeCachedSales(sales);
-        syncSalesLiveFromCache();
-        
-        // Process expenses
-        var expenses = [];
-        expensesSnap.forEach(function (d) { expenses.push(expenseEntryFromDoc(d)); });
-        writeCachedExpenses(expenses);
-        syncExpensesLiveFromCache();
+        mergeSalesSnap(salesSnap);
+        mergeExpensesSnap(expensesSnap);
         
         refreshAdminCurrentSection();
         console.log('[sync] Financial sync complete');
         if (typeof callback === 'function') callback();
     }).catch(function (err) {
         console.warn('[sync] financials:', err && err.message ? err.message : err);
-        // Fallback to cache if server fetch fails
-        syncSalesLiveFromCache();
-        syncExpensesLiveFromCache();
         if (typeof callback === 'function') callback();
     });
 }
@@ -849,31 +770,26 @@ function syncAdminFinancialsFromServer(callback) {
 function scheduleAdminRestFallback() {
     setTimeout(function () {
         if (!isAdminAuthenticated()) return;
-        if (_adminSalesLive === null) {
+        if (_adminSalesLive.length === 0) {
             fetchAdminCollectionViaRest('sales').then(function (docs) {
                 mergeRestSalesDocs(docs);
                 refreshAdminCurrentSection();
             }).catch(function (e) {
                 console.warn('[REST] sales fallback:', e.message || e);
-                _adminSalesLive = readCachedSales();
-                refreshAdminCurrentSection();
             });
         }
-        if (_adminExpensesLive === null) {
+        if (_adminExpensesLive.length === 0) {
             fetchAdminCollectionViaRest('expenses').then(function (docs) {
                 mergeRestExpensesDocs(docs);
                 refreshAdminCurrentSection();
             }).catch(function (e) {
                 console.warn('[REST] expenses fallback:', e.message || e);
-                _adminExpensesLive = readCachedExpenses();
-                refreshAdminCurrentSection();
             });
         }
     }, 4000);
 }
 
 function startAdminLiveListeners() {
-    hydrateAdminFromLocalCache();
     refreshAdminCurrentSection();
 
     if (_adminLiveListenersStarted || !window.db) return;
@@ -895,71 +811,37 @@ function startAdminLiveListeners() {
         }).catch(function (e) { console.warn('[REST] expenses:', e.message || e); });
     }
 
-    function applySalesSnap(snap) {
+    var salesUnsub = db.collection('sales').onSnapshot(function (snap) {
         console.log('[live] Sales snapshot received, docs:', snap.size);
         if (_adminResetInProgress) return;
-        if (shouldIgnoreCachedFirestoreSnap(snap)) return;
         if (snap.empty) {
-            if (isFirestoreCacheEmptySnap(snap)) {
-                hydrateAdminFromLocalCache();
-            } else {
-                var cachedSales = readCachedSales();
-                var pendingSales = cachedSales.filter(function (s) { return String(s.id).indexOf('local-') === 0; });
-                if (pendingSales.length) {
-                    _adminSalesLive = pendingSales;
-                    writeCachedSales(pendingSales);
-                } else if (!cachedSales.length) {
-                    _adminSalesLive = [];
-                    writeCachedSales([]);
-                }
-            }
+            _adminSalesLive = [];
             refreshAdminCurrentSection();
             return;
         }
-        mergeServerSalesIntoCache(snap);
+        mergeSalesSnap(snap);
         console.log('[live] Sales merged, refreshing dashboard');
         if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
         if (document.getElementById('recentSalesContainer')) renderRecentSalesUI();
-    }
-
-    function applyExpensesSnap(snap) {
-        console.log('[live] Expenses snapshot received, docs:', snap.size);
-        if (_adminResetInProgress) return;
-        if (shouldIgnoreCachedFirestoreSnap(snap)) return;
-        if (snap.empty) {
-            if (isFirestoreCacheEmptySnap(snap)) {
-                hydrateAdminFromLocalCache();
-            } else {
-                var cached = readCachedExpenses();
-                var pending = cached.filter(function (e) { return String(e.id).indexOf('local-') === 0; });
-                if (pending.length) {
-                    _adminExpensesLive = pending;
-                    writeCachedExpenses(pending);
-                } else if (!cached.length) {
-                    _adminExpensesLive = [];
-                    writeCachedExpenses([]);
-                }
-            }
-            refreshAdminCurrentSection();
-            return;
-        }
-        mergeServerExpensesIntoCache(snap);
-        console.log('[live] Expenses merged, refreshing dashboard');
-        if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
-        if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
-    }
-
-    var salesUnsub = db.collection('sales').onSnapshot(applySalesSnap, function (e) {
+    }, function (e) {
         console.error('[live] sales error:', e);
-        hydrateAdminFromLocalCache();
-        refreshAdminCurrentSection();
     });
     dashboardUnsubscribes.push(salesUnsub);
 
-    var expUnsub = db.collection('expenses').onSnapshot(applyExpensesSnap, function (e) {
+    var expUnsub = db.collection('expenses').onSnapshot(function (snap) {
+        console.log('[live] Expenses snapshot received, docs:', snap.size);
+        if (_adminResetInProgress) return;
+        if (snap.empty) {
+            _adminExpensesLive = [];
+            refreshAdminCurrentSection();
+            return;
+        }
+        mergeExpensesSnap(snap);
+        console.log('[live] Expenses merged, refreshing dashboard');
+        if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
+        if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
+    }, function (e) {
         console.error('[live] expenses error:', e);
-        hydrateAdminFromLocalCache();
-        refreshAdminCurrentSection();
     });
     dashboardUnsubscribes.push(expUnsub);
 
@@ -1785,8 +1667,8 @@ function stopDashboardListeners() {
     });
     dashboardUnsubscribes = [];
     _adminLiveListenersStarted = false;
-    _adminSalesLive = null;
-    _adminExpensesLive = null;
+    _adminSalesLive = [];
+    _adminExpensesLive = [];
 }
 
 function startDashboardListeners(month) {
@@ -3700,21 +3582,19 @@ function recordCashierSale(items) {
     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
     var total = items.reduce(function (s, i) { return s + i.price * i.quantity; }, 0);
     var now = new Date();
-    var tempId = 'local-' + Date.now();
     var cacheEntry = {
-        id: tempId,
         items: items.map(function (i) { return { name: i.name, price: i.price, quantity: i.quantity }; }),
         total: total,
         timestampSeconds: Math.floor(now.getTime() / 1000),
         cashier: (window.auth && auth.currentUser) ? auth.currentUser.email : S.unknown
     };
-    upsertCachedSale(cacheEntry);
 
     var saleWrite = db.collection('sales').add({
         items: cacheEntry.items,
         total: total,
         timestamp: firebase.firestore.Timestamp.fromDate(now),
         created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: (window.auth && auth.currentUser) ? auth.currentUser.uid : null,
         cashier: cacheEntry.cashier
     });
     console.log('[sale] Writing sale to Firestore, total:', total);
@@ -3723,16 +3603,6 @@ function recordCashierSale(items) {
         orderItems.length = 0;
         updateOrderDisplay();
     });
-    if (saleWrite && typeof saleWrite.then === 'function') {
-        saleWrite.then(function (ref) {
-            if (ref && ref.id) {
-                removeCachedSale(tempId);
-                upsertCachedSale(Object.assign({}, cacheEntry, { id: ref.id }));
-            }
-        }).catch(function (err) {
-            console.error('Sale sync error (will retry when online):', err);
-        });
-    }
     return total;
 }
 
@@ -4882,567 +4752,7 @@ function resetAllData() {
      });
  }
 
- /* ============ EXPENSES ============ */
-
- function readCachedExpenses() {
-     try {
-         return JSON.parse(localStorage.getItem('cachedExpenses') || '[]').map(normalizeExpenseEntry);
-     } catch (e) {
-         return [];
-     }
- }
-
- function writeCachedExpenses(items) {
-     localStorage.setItem('cachedExpenses', JSON.stringify(items));
-     syncExpensesLiveFromCache();
- }
-
- function expenseTimestampToMs(item) {
-     if (!item) return 0;
-     var sec = deriveExpenseTimestampSeconds(item);
-     if (sec != null) return sec * 1000;
-     return 0;
- }
-
- function expenseEntryFromDoc(doc) {
-     var exp = doc.data();
-     var ts = exp.timestamp;
-     var timestampSeconds = null;
-     if (ts && ts.seconds != null) timestampSeconds = ts.seconds;
-     else if (ts && ts._seconds != null) timestampSeconds = ts._seconds;
-     else if (ts && typeof ts.toDate === 'function') timestampSeconds = Math.floor(ts.toDate().getTime() / 1000);
-     return normalizeExpenseEntry({
-         id: doc.id,
-         name: exp.name,
-         price: exp.price || 0,
-         date: exp.date,
-         time: exp.time,
-         timestamp: ts,
-         timestampSeconds: timestampSeconds
-     });
- }
-
- function getExpenseMonthRange(month) {
-     var year = new Date().getFullYear();
-     return {
-         start: new Date(year, month, 1),
-         end: new Date(year, month + 1, 1)
-     };
- }
-
- function filterExpensesByMonth(items, month) {
-     var year = new Date().getFullYear();
-     return items.filter(function (item) {
-         return isExpenseInMonth(item, month, year);
-     }).sort(function (a, b) {
-         return expenseTimestampToMs(b) - expenseTimestampToMs(a);
-     });
- }
-
- function filterExpensesByDay(items, dayStart) {
-     return items.filter(function (item) {
-         return isExpenseOnLocalDay(item, dayStart);
-     }).sort(function (a, b) {
-         return expenseTimestampToMs(b) - expenseTimestampToMs(a);
-     });
- }
-
- function upsertCachedExpense(entry) {
-     normalizeExpenseEntry(entry);
-     var items = readCachedExpenses();
-     var idx = -1;
-     for (var i = 0; i < items.length; i++) {
-         if (items[i].id === entry.id) { idx = i; break; }
-     }
-     if (idx >= 0) items[idx] = entry;
-     else items.push(entry);
-     writeCachedExpenses(items);
- }
-
- function removeCachedExpense(id) {
-     writeCachedExpenses(readCachedExpenses().filter(function (e) { return e.id !== id; }));
- }
-
- function mergeExpensesSnapIntoCache(snap) {
-     if (!snap || snap.empty) return;
-     var all = readCachedExpenses();
-     snap.forEach(function (doc) {
-         var entry = expenseEntryFromDoc(doc);
-         var found = false;
-         for (var i = 0; i < all.length; i++) {
-             if (all[i].id === entry.id) { all[i] = entry; found = true; break; }
-         }
-         if (!found) all.push(entry);
-     });
-     writeCachedExpenses(all);
- }
-
- function paintExpensesStatsFromCache(month) {
-     if (month === undefined || month === null) month = new Date().getMonth();
-     var year = new Date().getFullYear();
-     var today = new Date();
-     today.setHours(0, 0, 0, 0);
-     var tomorrow = new Date(today);
-     tomorrow.setDate(tomorrow.getDate() + 1);
-     var mStart = new Date(year, month, 1);
-     var mEnd = new Date(year, month + 1, 1);
-
-     var todayTotal = sumExpensesInRange(today, tomorrow);
-     var monthItems = filterExpensesByMonth(readCachedExpenses(), month);
-     var monthTotal = 0;
-     monthItems.forEach(function (e) { monthTotal += e.price || 0; });
-
-     var el = document.getElementById('expTodayTotal');
-     if (el) el.textContent = todayTotal.toLocaleString() + ' IQD';
-     var elM = document.getElementById('expMonthTotal');
-     if (elM) elM.textContent = monthTotal.toLocaleString() + ' IQD';
-     var elC = document.getElementById('expCount');
-     if (elC) elC.textContent = monthItems.length.toString();
- }
-
- function renderExpensesList(month, items) {
-     var list = document.getElementById('expensesList');
-     if (!list) return;
-     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
-
-     if (!items || items.length === 0) {
-         list.innerHTML = '<div class="expenses-empty">' +
-             '<div class="expenses-empty-icon">📭</div>' +
-             '<p>' + S.noExpenses + '</p>' +
-         '</div>';
-         return;
-     }
-
-     var now = new Date();
-     var isCurrentMonth = month === now.getMonth() && now.getFullYear() === new Date().getFullYear();
-     var todayStart = new Date();
-     todayStart.setHours(0, 0, 0, 0);
-     var todayItems = isCurrentMonth ? filterExpensesByDay(items, todayStart) : [];
-     var todayIds = {};
-     todayItems.forEach(function (e) { todayIds[e.id] = true; });
-     var monthRest = isCurrentMonth ? items.filter(function (e) { return !todayIds[e.id]; }) : items;
-
-     function buildRows(listItems) {
-         var total = 0;
-         var rows = '';
-         listItems.forEach(function (item) {
-             total += (item.price || 0);
-             var ms = expenseTimestampToMs(item);
-             var dateObj = ms ? new Date(ms) : null;
-             var dateStr = dateObj ? dateObj.toLocaleDateString('ku-IQ') : (item.date || '—');
-             var timeStr = dateObj ? dateObj.toLocaleTimeString('ku-IQ', { hour: '2-digit', minute: '2-digit', hour12: true }) : (item.time || '');
-             rows += '<tr class="expense-row">' +
-                 '<td class="expense-cell expense-cell--name"><span class="expense-name">' + (item.name || '—') + '</span></td>' +
-                 '<td class="expense-cell expense-cell--price"><span class="expense-price">' + (item.price || 0).toLocaleString() + ' IQD</span></td>' +
-                 '<td class="expense-cell expense-cell--date"><span class="expense-date">' + dateStr + '</span><span class="expense-time">' + timeStr + '</span></td>' +
-                 '<td class="expense-cell expense-cell--actions">' +
-                     '<button type="button" class="btn-primary btn-sm edit-expense" data-id="' + item.id + '" title="' + S.edit + '">✎</button> ' +
-                     '<button type="button" class="btn-danger btn-sm delete-expense" data-id="' + item.id + '">✕</button>' +
-                 '</td>' +
-             '</tr>';
-         });
-         return { rows: rows, total: total };
-     }
-
-     function buildTable(title, listItems) {
-         if (!listItems.length) return '';
-         var built = buildRows(listItems);
-         return (title ? '<h3 class="expenses-day-heading">' + title + '</h3>' : '') +
-             '<div class="expenses-table-wrapper">' +
-             '<table class="expenses-table">' +
-                 '<thead><tr>' +
-                     '<th>' + S.expenseName + '</th>' +
-                     '<th>' + S.expensePrice + '</th>' +
-                     '<th>' + S.expenseDate + '</th>' +
-                     '<th></th>' +
-                 '</tr></thead>' +
-                 '<tbody>' + built.rows + '</tbody>' +
-                 '<tfoot><tr>' +
-                     '<td colspan="4" class="expense-total-cell">' +
-                         '<span class="expense-total-label">' + S.totalExpenses + ':</span>' +
-                         '<span class="expense-total-value">' + built.total.toLocaleString() + ' IQD</span>' +
-                     '</td>' +
-                 '</tr></tfoot>' +
-             '</table></div>';
-     }
-
-     var html = '';
-     if (todayItems.length) {
-         html += buildTable(S.todayExpenses, todayItems);
-     }
-     if (monthRest.length) {
-         html += buildTable(todayItems.length ? (S.monthlyExpenses || S.expenses) : '', monthRest);
-     }
-     if (!html) {
-         list.innerHTML = '<div class="expenses-empty">' +
-             '<div class="expenses-empty-icon">📭</div>' +
-             '<p>' + S.noExpenses + '</p>' +
-         '</div>';
-         return;
-     }
-
-     list.innerHTML = html;
-
-     list.querySelectorAll('.edit-expense').forEach(function (btn) {
-         btn.addEventListener('click', function () {
-             editExpense(this.getAttribute('data-id'));
-         });
-     });
-     list.querySelectorAll('.delete-expense').forEach(function (btn) {
-         btn.addEventListener('click', function () {
-             deleteExpense(this.getAttribute('data-id'));
-         });
-     });
- }
-
- function loadExpenses() {
-     // Force refresh from server to ensure cross-device sync
-     syncAdminFinancialsFromServer(function() {
-         // After server sync, render expenses with fresh data
-         renderExpensesUI(getExpensesMonth());
-     });
-     
-     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
-     var adminContent = document.getElementById('adminContent');
-     var now = new Date();
-     var currentMonth = now.getMonth();
-     var monthsHtml = '';
-     var mNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-     for (var m = 0; m < 12; m++) {
-         monthsHtml += '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + (m + 1) + ' — ' + S[mNames[m]] + ' ' + now.getFullYear() + '</option>';
-     }
-
-     adminContent.innerHTML =
-         '<div class="expenses-page">' +
-             '<div class="expenses-header">' +
-                 '<div class="expenses-header-title">' +
-                     '<h2>📉 ' + S.expenses + '</h2>' +
-                 '</div>' +
-                 '<div class="expenses-header-actions">' +
-                     '<div class="month-selector">' +
-                         '<select id="expensesMonthSelect">' + monthsHtml + '</select>' +
-                     '</div>' +
-                     '<button class="btn-primary" id="addExpenseBtn">+ ' + S.addExpense + '</button>' +
-                 '</div>' +
-             '</div>' +
-             '<div class="expenses-stats">' +
-                 '<div class="expense-stat-card expense-stat--today">' +
-                     '<div class="expense-stat-icon">📅</div>' +
-                     '<div class="expense-stat-info">' +
-                         '<span class="expense-stat-label">' + S.todayExpenses + '</span>' +
-                         '<span class="expense-stat-value" id="expTodayTotal">0 IQD</span>' +
-                     '</div>' +
-                 '</div>' +
-                 '<div class="expense-stat-card expense-stat--month">' +
-                     '<div class="expense-stat-icon">📊</div>' +
-                     '<div class="expense-stat-info">' +
-                         '<span class="expense-stat-label">' + S.monthlyExpenses + '</span>' +
-                         '<span class="expense-stat-value" id="expMonthTotal">0 IQD</span>' +
-                     '</div>' +
-                 '</div>' +
-                 '<div class="expense-stat-card expense-stat--count">' +
-                     '<div class="expense-stat-icon">📋</div>' +
-                     '<div class="expense-stat-info">' +
-                         '<span class="expense-stat-label">' + S.total + '</span>' +
-                         '<span class="expense-stat-value" id="expCount">0</span>' +
-                     '</div>' +
-                 '</div>' +
-             '</div>' +
-             '<div class="expenses-table-container">' +
-                 '<div id="expensesList"></div>' +
-             '</div>' +
-         '</div>' +
-         '<div id="expenseModal" class="modal-overlay">' +
-             '<div class="modal expense-modal">' +
-                 '<div class="modal-content">' +
-                     '<span class="modal-close" id="expenseModalClose">&times;</span>' +
-                     '<h2 id="expenseModalTitle">' + S.addExpense + '</h2>' +
-                     '<form id="expenseForm" novalidate>' +
-                         '<div class="form-group">' +
-                             '<label>' + S.expenseName + '</label>' +
-                             '<input type="text" id="expenseName" list="expenseSuggestions" autocomplete="off">' +
-                             '<datalist id="expenseSuggestions">' +
-                                 '<option value="' + S.water + '">' +
-                                 '<option value="' + S.milk + '">' +
-                                 '<option value="' + S.coffee + '">' +
-                                 '<option value="' + S.electric + '">' +
-                                 '<option value="' + S.gas + '">' +
-                                 '<option value="' + S.rent + '">' +
-                                 '<option value="' + S.salary + '">' +
-                                 '<option value="' + S.other + '">' +
-                             '</datalist>' +
-                         '</div>' +
-                         '<div class="form-row">' +
-                             '<div class="form-group">' +
-                                 '<label>' + S.expensePrice + '</label>' +
-                                 '<input type="text" inputmode="decimal" id="expensePrice" min="0" autocomplete="off">' +
-                             '</div>' +
-                             '<div class="form-group">' +
-                                 '<label>' + S.expenseDate + '</label>' +
-                                 '<input type="date" id="expenseDate">' +
-                             '</div>' +
-                         '</div>' +
-                         '<div class="form-group">' +
-                             '<label>' + S.expenseTime + '</label>' +
-                             '<input type="time" id="expenseTime">' +
-                         '</div>' +
-                         '<button type="button" class="btn-primary" id="saveExpenseBtn">' + S.saveItem + '</button>' +
-                         '<button type="button" class="btn-secondary" id="cancelExpenseBtn" style="margin-left:8px;">' + S.cancel + '</button>' +
-                         '<input type="hidden" id="expenseId" value="">' +
-                     '</form>' +
-                 '</div>' +
-             '</div>' +
-         '</div>';
-
-     var monthSelect = document.getElementById('expensesMonthSelect');
-     if (monthSelect) {
-         monthSelect.addEventListener('change', function () {
-             renderExpensesUI(parseInt(this.value, 10));
-         });
-     }
-
-     var addBtn = document.getElementById('addExpenseBtn');
-     if (addBtn) {
-         addBtn.addEventListener('click', function () {
-             document.getElementById('expenseModalTitle').textContent = S.addExpense;
-             document.getElementById('expenseForm').reset();
-             document.getElementById('expenseId').value = '';
-             var today = getLocalDateKey(new Date());
-             var now = new Date().toTimeString().slice(0, 5);
-             document.getElementById('expenseDate').value = today;
-             document.getElementById('expenseTime').value = now;
-             document.getElementById('expenseModal').classList.add('active');
-         });
-     }
-
-     var closeBtn = document.getElementById('expenseModalClose');
-     if (closeBtn) {
-         closeBtn.addEventListener('click', function () {
-             document.getElementById('expenseModal').classList.remove('active');
-         });
-     }
-
-     var cancelBtn = document.getElementById('cancelExpenseBtn');
-     if (cancelBtn) {
-         cancelBtn.addEventListener('click', function () {
-             document.getElementById('expenseModal').classList.remove('active');
-         });
-     }
-
-     var form = document.getElementById('expenseForm');
-     function triggerSaveExpense() {
-         try { saveExpense(); } catch (err) {
-             console.error('saveExpense error:', err);
-             alert(S.itemSyncFailed + (err && err.message ? '\n' + err.message : ''));
-         }
-     }
-     if (form) {
-         form.addEventListener('submit', function (e) {
-             e.preventDefault();
-             triggerSaveExpense();
-         });
-     }
-     var saveExpenseBtn = document.getElementById('saveExpenseBtn');
-     if (saveExpenseBtn) {
-         saveExpenseBtn.addEventListener('click', function (e) {
-             e.preventDefault();
-             triggerSaveExpense();
-         });
-     }
-
-     renderExpensesUI(currentMonth);
-     startAdminLiveListeners();
- }
-
- function renderExpensesUI(month) {
-     if (month === undefined || month === null) month = new Date().getMonth();
-     var year = new Date().getFullYear();
-     var today = new Date();
-     today.setHours(0, 0, 0, 0);
-     var tomorrow = new Date(today);
-     tomorrow.setDate(tomorrow.getDate() + 1);
-     var mStart = new Date(year, month, 1);
-     var mEnd = new Date(year, month + 1, 1);
-     var todayMs = today.getTime();
-     var tomorrowMs = tomorrow.getTime();
-     var startMs = mStart.getTime();
-     var endMs = mEnd.getTime();
-
-     var all = readCachedExpenses();
-     var monthItems = filterExpensesByMonth(all, month);
-     var todayTotal = 0;
-     var monthTotal = 0;
-     all.forEach(function (e) {
-         if (isExpenseOnLocalDay(e, today)) todayTotal += e.price || 0;
-         if (isExpenseInMonth(e, month, year)) monthTotal += e.price || 0;
-     });
-
-     var el = document.getElementById('expTodayTotal');
-     if (el) el.textContent = todayTotal.toLocaleString() + ' IQD';
-     var elM = document.getElementById('expMonthTotal');
-     if (elM) elM.textContent = monthTotal.toLocaleString() + ' IQD';
-     var elC = document.getElementById('expCount');
-     if (elC) elC.textContent = monthItems.length.toString();
-
-     renderExpensesList(month, monthItems);
- }
-
- function loadExpensesStats(month) {
-     renderExpensesUI(month);
- }
-
- function loadExpensesList(month) {
-     renderExpensesUI(month);
- }
-
- function editExpense(expenseId) {
-     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
-     var expense = readCachedExpenses().filter(function (e) { return e.id === expenseId; })[0];
-     if (!expense) return;
-
-     document.getElementById('expenseModalTitle').textContent = S.editExpense || S.editItem;
-     document.getElementById('expenseId').value = expense.id;
-     document.getElementById('expenseName').value = expense.name || '';
-     document.getElementById('expensePrice').value = expense.price != null ? expense.price : '';
-
-     var dateVal = expense.date || '';
-     var timeVal = expense.time || '';
-     if (!dateVal || !timeVal) {
-         var ms = expenseTimestampToMs(expense);
-         if (ms) {
-             var d = new Date(ms);
-             dateVal = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-             timeVal = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-         }
-     }
-     document.getElementById('expenseDate').value = dateVal;
-     document.getElementById('expenseTime').value = timeVal;
-     document.getElementById('expenseModal').classList.add('active');
- }
-
- function saveExpense() {
-     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
-     var name = document.getElementById('expenseName').value.trim();
-     var price = document.getElementById('expensePrice').value.trim();
-     var date = document.getElementById('expenseDate').value;
-     var time = document.getElementById('expenseTime').value;
-
-     if (!name || !price || !date || !time) {
-         alert(S.fillAll);
-         return;
-     }
-
-     var expenseId = document.getElementById('expenseId').value;
-     var dateTime = new Date(date + 'T' + time);
-     if (isNaN(dateTime.getTime())) {
-         alert(S.fillAll);
-         return;
-     }
-
-     var expenseMonth = dateTime.getMonth();
-     var monthSelect = document.getElementById('expensesMonthSelect');
-     if (monthSelect) monthSelect.value = String(expenseMonth);
-
-     var tempId = expenseId || ('local-' + Date.now());
-     var cacheEntry = {
-         id: tempId,
-         name: name,
-         price: parseFloat(price) || 0,
-         date: date,
-         time: time,
-         timestampSeconds: Math.floor(dateTime.getTime() / 1000),
-         user_id: (window.auth && auth.currentUser) ? auth.currentUser.uid : null,
-         user_email: (window.auth && auth.currentUser) ? auth.currentUser.email : null
-     };
-     upsertCachedExpense(cacheEntry);
-     syncExpensesLiveFromCache();
-
-     document.getElementById('expenseModal').classList.remove('active');
-     renderExpensesUI(expenseMonth);
-     
-     // Force dashboard refresh with expenses
-     if (document.getElementById('todaySales')) {
-         syncExpensesLiveFromCache();
-         renderDashboardUI(getDashboardMonth());
-     }
-
-     if (!window.db) {
-         alert(S.expenseSavedOffline || S.expenseSaved);
-         return;
-     }
-
-     var expenseData = {
-         name: name,
-         price: parseFloat(price) || 0,
-         date: date,
-         time: time,
-         timestamp: firebase.firestore.Timestamp.fromDate(dateTime),
-         updated_at: firebase.firestore.FieldValue.serverTimestamp()
-     };
-
-     var isLocalId = expenseId && String(expenseId).indexOf('local-') === 0;
-     var isServerUpdate = expenseId && !isLocalId;
-
-     if (!isServerUpdate) {
-         expenseData.created_at = firebase.firestore.FieldValue.serverTimestamp();
-     }
-
-     var promise;
-     if (isServerUpdate) {
-         promise = db.collection('expenses').doc(expenseId).update(expenseData);
-     } else {
-         promise = db.collection('expenses').add(expenseData);
-     }
-
-     console.log('[expense] Writing expense to Firestore:', name, 'price:', price);
-     applyWrite(promise, function (offline) {
-         console.log('[expense] Expense written successfully, offline:', offline);
-         alert(offline ? (S.expenseSavedOffline || S.expenseSaved) : S.expenseSaved);
-     });
-
-     if (promise && typeof promise.then === 'function') {
-         promise.then(function (ref) {
-             if (!isServerUpdate && ref && ref.id) {
-                 if (isLocalId) removeCachedExpense(expenseId);
-                 else if (!expenseId) removeCachedExpense(tempId);
-                 upsertCachedExpense(Object.assign({}, cacheEntry, { id: ref.id }));
-                 syncExpensesLiveFromCache();
-             }
-             renderExpensesUI(expenseMonth);
-             if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
-         }).catch(function (err) {
-             console.error('Expense save sync error:', err);
-         });
-     }
- }
-
- function deleteExpense(expenseId) {
-     var S = i18n[localStorage.getItem('selectedLang') || 'ku'] || i18n.en;
-     if (!confirm(S.deleteExpenseConfirm)) return;
-
-     removeCachedExpense(expenseId);
-     syncExpensesLiveFromCache();
-     var monthSelect = document.getElementById('expensesMonthSelect');
-     var month = monthSelect ? parseInt(monthSelect.value, 10) : new Date().getMonth();
-     renderExpensesUI(month);
-     
-     // Force dashboard refresh with expenses
-     if (document.getElementById('todaySales')) {
-         syncExpensesLiveFromCache();
-         renderDashboardUI(getDashboardMonth());
-     }
-
-     if (!window.db || String(expenseId).indexOf('local-') === 0) {
-         alert(S.expenseDeleted);
-         return;
-     }
-
-     applyWrite(db.collection('expenses').doc(expenseId).delete(), function (offline) {
-         alert(offline ? (S.expenseDeletedOffline || S.expenseDeleted) : S.expenseDeleted);
-     });
- }
-
- /* ============ LOGOUT ============ */
+/* ============ LOGOUT ============ */
 
 function handleLogout() {
     stopDashboardListeners();
