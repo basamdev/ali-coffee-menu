@@ -805,7 +805,9 @@ function shouldIgnoreCachedFirestoreSnap(snap) {
 }
 
 function syncAdminFinancialsFromServer(callback) {
+    console.log('[sync] Starting financial sync from server');
     if (!isAdminAuthenticated() || !navigator.onLine) {
+        console.log('[sync] Skipping sync - not authenticated or offline');
         if (typeof callback === 'function') callback();
         return Promise.resolve();
     }
@@ -817,6 +819,8 @@ function syncAdminFinancialsFromServer(callback) {
     ]).then(function (results) {
         var salesSnap = results[0];
         var expensesSnap = results[1];
+        
+        console.log('[sync] Fetched sales:', salesSnap.size, 'expenses:', expensesSnap.size);
         
         // Process sales
         var sales = [];
@@ -831,6 +835,7 @@ function syncAdminFinancialsFromServer(callback) {
         syncExpensesLiveFromCache();
         
         refreshAdminCurrentSection();
+        console.log('[sync] Financial sync complete');
         if (typeof callback === 'function') callback();
     }).catch(function (err) {
         console.warn('[sync] financials:', err && err.message ? err.message : err);
@@ -891,6 +896,7 @@ function startAdminLiveListeners() {
     }
 
     function applySalesSnap(snap) {
+        console.log('[live] Sales snapshot received, docs:', snap.size);
         if (_adminResetInProgress) return;
         if (shouldIgnoreCachedFirestoreSnap(snap)) return;
         if (snap.empty) {
@@ -911,11 +917,13 @@ function startAdminLiveListeners() {
             return;
         }
         mergeServerSalesIntoCache(snap);
+        console.log('[live] Sales merged, refreshing dashboard');
         if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
         if (document.getElementById('recentSalesContainer')) renderRecentSalesUI();
     }
 
     function applyExpensesSnap(snap) {
+        console.log('[live] Expenses snapshot received, docs:', snap.size);
         if (_adminResetInProgress) return;
         if (shouldIgnoreCachedFirestoreSnap(snap)) return;
         if (snap.empty) {
@@ -936,6 +944,7 @@ function startAdminLiveListeners() {
             return;
         }
         mergeServerExpensesIntoCache(snap);
+        console.log('[live] Expenses merged, refreshing dashboard');
         if (document.getElementById('todaySales')) renderDashboardUI(getDashboardMonth());
         if (document.getElementById('expensesList')) renderExpensesUI(getExpensesMonth());
     }
@@ -3708,7 +3717,9 @@ function recordCashierSale(items) {
         created_at: firebase.firestore.FieldValue.serverTimestamp(),
         cashier: cacheEntry.cashier
     });
+    console.log('[sale] Writing sale to Firestore, total:', total);
     applyWrite(saleWrite, function () {
+        console.log('[sale] Sale written successfully');
         orderItems.length = 0;
         updateOrderDisplay();
     });
@@ -5383,7 +5394,9 @@ function resetAllData() {
          promise = db.collection('expenses').add(expenseData);
      }
 
+     console.log('[expense] Writing expense to Firestore:', name, 'price:', price);
      applyWrite(promise, function (offline) {
+         console.log('[expense] Expense written successfully, offline:', offline);
          alert(offline ? (S.expenseSavedOffline || S.expenseSaved) : S.expenseSaved);
      });
 
