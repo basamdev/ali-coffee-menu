@@ -4908,7 +4908,7 @@ function resetAllData() {
              var ms = expenseTimestampToMs(item);
              var dateObj = ms ? new Date(ms) : null;
              var dateStr = dateObj ? dateObj.toLocaleDateString('ku-IQ') : (item.date || '—');
-             var timeStr = dateObj ? dateObj.toLocaleTimeString('ku-IQ', { hour: '2-digit', minute: '2-digit' }) : (item.time || '');
+             var timeStr = dateObj ? dateObj.toLocaleTimeString('ku-IQ', { hour: '2-digit', minute: '2-digit', hour12: true }) : (item.time || '');
              rows += '<tr class="expense-row">' +
                  '<td class="expense-cell expense-cell--name"><span class="expense-name">' + (item.name || '—') + '</span></td>' +
                  '<td class="expense-cell expense-cell--price"><span class="expense-price">' + (item.price || 0).toLocaleString() + ' IQD</span></td>' +
