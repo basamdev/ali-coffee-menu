@@ -4898,15 +4898,14 @@ function resetAllData() {
      if (!confirm(S.resetConfirm)) return;
 
      if (!window.db) {
-         alert(S.resetError + 'Firestore not ready.');
+         alert(S.resetError + ' Firestore not ready. Please refresh the page.');
          return;
      }
 
-     // Removed authentication check to allow anyone to reset income/expenses
-     // if (!isAdminAuthenticated()) {
-     //     alert(S.resetError + (S.loginRequired || 'Please log in again.'));
-     //     return;
-     // }
+     if (!isAdminAuthenticated()) {
+         alert(S.resetError + ' ' + (S.loginRequired || 'Please log in again.'));
+         return;
+     }
 
      if (_adminResetInProgress) return;
 
