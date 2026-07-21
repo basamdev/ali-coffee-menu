@@ -493,12 +493,37 @@ function mergeRestSalesDocs(docs) {
     if (_adminResetInProgress) return;
     var sales = [];
     (docs || []).forEach(function (d) {
+        var data = d.data();
+        var ts = data.timestamp;
+        var timestampSeconds = data.timestampSeconds;
+        if (timestampSeconds == null && ts != null) {
+            if (typeof ts === 'number') {
+                timestampSeconds = Math.floor(ts / 1000);
+            } else if (typeof ts === 'string') {
+                var parsed = new Date(ts);
+                if (!isNaN(parsed.getTime())) timestampSeconds = Math.floor(parsed.getTime() / 1000);
+            } else if (ts.seconds != null) {
+                timestampSeconds = parseFloat(ts.seconds);
+            } else if (ts._seconds != null) {
+                timestampSeconds = parseFloat(ts._seconds);
+            } else if (typeof ts.toDate === 'function') {
+                timestampSeconds = Math.floor(ts.toDate().getTime() / 1000);
+            } else if (ts instanceof Date) {
+                timestampSeconds = Math.floor(ts.getTime() / 1000);
+            } else if (typeof ts.seconds === 'function') {
+                var secObj = ts.seconds();
+                if (secObj && secObj.seconds != null) {
+                    timestampSeconds = parseFloat(secObj.seconds);
+                }
+            }
+        }
         sales.push({
             id: d.id,
-            items: d.data.items || [],
-            total: d.data.total || 0,
-            timestampSeconds: d.data.timestampSeconds,
-            cashier: d.data.cashier
+            items: data.items || [],
+            total: data.total || 0,
+            timestamp: ts,
+            timestampSeconds: timestampSeconds,
+            cashier: data.cashier
         });
     });
     sales.sort(function (a, b) {
