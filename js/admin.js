@@ -1230,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function () {
     hydrateAdminFromLocalCache();
 
     var LOGO_CANDIDATES = [
-        'assets/ali-logo-page.jpg',
+        'images/install/smartserve menu logo.png',
         'assets/logo.svg'
     ];
     window.fallbackLogo = function (img) {
@@ -3957,7 +3957,7 @@ function buildReceiptPrintHtml(options) {
     '</head>' +
     '<body class="' + langClass + '">' +
         '<div class="receipt">' +
-            '<img class="brand-logo" src="' + escapeReceiptHtml(options.logoUrl || 'assets/icon-192.png') + '" alt="" onerror="this.style.display=\'none\'">' +
+            '<img class="brand-logo" src="' + escapeReceiptHtml(options.logoUrl || 'images/install/smartserve menu logo.png') + '" alt="" onerror="this.style.display=\'none\'">' +
             '<div class="brand-title"><span class="en">Smartserve</span><span class="sep">|</span><span class="ku">سمارت سێرڤ</span></div>' +
             '<div class="brand-tagline">Premium Coffee House</div>' +
             (options.location ? '<div class="brand-location">' + escapeReceiptHtml(options.location) + '</div>' : '') +
@@ -4089,7 +4089,7 @@ function printReceipt(itemsOverride) {
     var phone = formatReceiptPhone(localStorage.getItem('whatsappPhone') || '9647506454656');
     var location = localStorage.getItem('cafeLocationLabel') || 'بەحرکە-مجەمع';
 
-    var logoUrl = new URL('assets/icon-192.png', window.location.href).href;
+    var logoUrl = new URL('images/install/smartserve menu logo.png', window.location.href).href;
 
     var receiptHTML = buildReceiptPrintHtml({
         lang: lang,
